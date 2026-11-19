@@ -111,3 +111,16 @@ body.touch #pframe{left:calc(8px + env(safe-area-inset-left))}
 body.touch #hotbar{right:calc(12px + env(safe-area-inset-right));bottom:calc(20px + env(safe-area-inset-bottom))}
 body.touch #minimap{right:calc(8px + env(safe-area-inset-right))}
 @media (orientation:portrait){body.touch #hotbar{grid-template-columns:repeat(3,58px);gap:6px}body.touch .slot{width:58px;height:58px;font-size:24px}body.touch #tracker{top:126px;right:8px;width:150px}body.touch #topbtns{top:126px;right:auto;left:8px;top:96px}body.touch #tframe{top:120px}body.touch #interact{bottom:230px}}
+
+/* talents */
+#topbtns button.glow{box-shadow:0 0 0 2px #ffd23f,0 0 14px #ffd23f;animation:tglow 1.4s ease-in-out infinite}
+@keyframes tglow{50%{box-shadow:0 0 0 2px #ffd23f,0 0 4px #ffd23f}}
+.tcols{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.ttree .h3 small{display:block;color:#aaa;font-weight:normal;font-size:11px}
+.tal{display:flex;gap:8px;align-items:flex-start;width:100%;text-align:left;background:#1d1a16;border:2px solid #3a342c;border-radius:8px;color:#eee;padding:7px;margin:0 0 7px;cursor:pointer;font:inherit}
+.tal .ti{font-size:22px;line-height:1}
+.tal .tn{font-size:13px}.tal .tn b{color:#ffd23f}
+.tal small{display:block;color:#bbb;font-size:11px;margin-top:2px}.tal small i{color:#e88}
+.tal.has{border-color:#7fbf5a}.tal.can{border-color:#ffd23f;box-shadow:0 0 8px rgba(255,210,63,.45)}.tal.lock{opacity:.5}
+.npcn.portal{color:#d8c4ff}
+@media (max-width:700px){.tcols{grid-template-columns:1fr}}

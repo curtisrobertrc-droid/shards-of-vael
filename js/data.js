@@ -58,6 +58,10 @@ export const ENEMIES = {
   bandit: { name: 'Thornwood Bandit', model: 'chars/character-raider', level: 4, hp: 105, dmg: 10, speed: 3.4, aggro: 8, xp: 55, gold: [6, 12], drop: 0.35, scale: 1.0 },
   grubb: { name: 'Grubb the Pilferer', model: 'chars/character-raider', level: 5, hp: 680, dmg: 15, speed: 3.3, aggro: 9, xp: 320, gold: [40, 60], drop: 1, minRarity: 2, scale: 1.45, elite: true, slam: { every: 7.5, radius: 3.4, dmg: 26, windup: 1.75 }, tint: 0x6a1b1b },
   ghost: { name: 'Shrine Shade', model: 'grave/character-ghost', level: 5, hp: 100, dmg: 12, speed: 3.3, aggro: 8, xp: 60, gold: [6, 12], drop: 0.35, scale: 1.0 },
+  ashhusk: { name: 'Ash-Choked Husk', model: 'chars/character-zombie', level: 6, hp: 140, dmg: 13, speed: 2.6, aggro: 8, xp: 70, gold: [8, 14], drop: 0.3, scale: 1.05, tint: 0x2a2622 },
+  millbones: { name: 'Mill Crypt Guard', model: 'grave/character-skeleton', level: 6, hp: 170, dmg: 14, speed: 3.0, aggro: 8, xp: 80, gold: [9, 15], drop: 0.32, scale: 1.1, tint: 0x3a2a10 },
+  brute: { name: 'Ashen Brute', model: 'dun/character-orc', level: 7, hp: 380, dmg: 19, speed: 2.8, aggro: 8.5, xp: 120, gold: [14, 22], drop: 0.5, scale: 1.3, slam: { every: 9, radius: 2.6, dmg: 24, windup: 1.6 } },
+  greywarden: { name: 'The Grey Warden', model: 'chars/character-knight', level: 8, hp: 5500, dmg: 24, gear: true, lootPrefix: 'Ashen', speed: 3.4, aggro: 11, xp: 900, gold: [160, 220], drop: 1, minRarity: 3, scale: 1.9, boss: true, tint: 0x1c1c22, slam: { every: 8, radius: 3.6, dmg: 36, windup: 1.8 }, rain: { every: 9, radius: 2.4, dmg: 28, windup: 1.9, below: 0.5 }, summon: [0.66, 0.33], summonType: 'ashhusk', summonText: 'The Grey Warden calls the ash-choked dead!', enrage: 0.25 },
   wraith: { name: 'The Shrine Wraith', model: 'grave/character-ghost', level: 6, hp: 1350, dmg: 17, speed: 3.0, aggro: 10, xp: 650, gold: [90, 120], drop: 1, minRarity: 3, scale: 2.0, boss: true, rain: { every: 7.5, radius: 2.5, dmg: 28, windup: 1.9 }, summon: [0.6, 0.3], tint: 0x5b2a9a },
 };
 
@@ -109,11 +113,38 @@ export const QUESTS = [
     id: 'q4', name: 'The Corrupted Shrine', giver: 'edda', req: 'q3',
     text: 'Old Mother Bramble sent word: the Thornkin shrine south of here has gone dark. Something Hollow has taken root there — a Wraith, fed on stolen Shards. Destroy it, and the shrine can be cleansed. Dodge the red circles it calls down.',
     progressText: 'The shrine is south, along the forest path. Dodge the red circles.',
-    doneText: 'The shrine burns clean again. But Bramble had a vision when it broke: a crown with no light, and a voice saying "Maldren rises". Rest now, Warden. Greenhollow owes you.',
+    doneText: 'The shrine burns clean again. But Bramble had a vision when it broke: a crown with no light, and a voice saying "Maldren rises". Rest a moment, Warden. Then come and see me: there is one more thing.',
     objectives: [{ type: 'kill', enemy: 'wraith', count: 1, label: 'Shrine Wraith destroyed' }],
     reward: { xp: 1100, gold: 220, item: { slot: 'offhand', rarity: 3, ilvl: 8, name: 'Lantern-Warden\'s Aegis' } },
     hint: [-8, 34],
   },
+  {
+    id: 'q5', name: 'The Mill of Ashes', giver: 'edda', req: 'q4',
+    text: 'There is more. The old mill beside the windmill has been grinding at night, and the miller is gone. Ash pours out of the cellar. The Grey Warden, Grubb\'s masked buyer, was seen going down there. Go into the Mill of Ashes and stop the Grey Warden. You will be on your own down there, so take potions.',
+    progressText: 'The cellar door glows beside the windmill, east of the village. Recommended level 6 or higher.',
+    doneText: 'You beat the Grey Warden! But the mask crumbled to ash in your hands, and the body was gone. Who was under it? I fear we will find out. Greenhollow is in your debt, Warden.',
+    objectives: [{ type: 'kill', enemy: 'greywarden', count: 1, label: 'Grey Warden defeated' }],
+    reward: { xp: 1600, gold: 300, item: { slot: 'mainhand', rarity: 3, ilvl: 9, name: 'Ashen Oathblade' } },
+    hint: [14.5, -7.5],
+  },
+];
+
+// Warden talents: one point per level from level 2. Tier 2 needs 2 points in that tree, tier 3 needs 3.
+export const TALENT_TREES = [
+  { id: 'Bulwark', blurb: 'Pure defence' },
+  { id: 'Vanguard', blurb: 'Hit back hard' },
+  { id: 'Oathkeeper', blurb: 'Stay standing' },
+];
+export const TALENTS = [
+  { id: 'plate', tree: 'Bulwark', tier: 1, max: 2, name: 'Thick Plate', icon: '🛡️', desc: '+10% armour per point.' },
+  { id: 'shieldwall', tree: 'Bulwark', tier: 2, max: 1, name: 'Shield Wall', icon: '🧱', desc: 'Shield Bash stuns for 1s longer and recharges 1s faster.' },
+  { id: 'unbreak', tree: 'Bulwark', tier: 3, max: 1, name: 'Unbreakable', icon: '💎', desc: 'Once per fight, a hit that would defeat you leaves you standing and heals 25% of your health.' },
+  { id: 'heavy', tree: 'Vanguard', tier: 1, max: 3, name: 'Heavy Blows', icon: '🔨', desc: '+5% damage per point.' },
+  { id: 'whirl', tree: 'Vanguard', tier: 2, max: 1, name: 'Whirlwind', icon: '🌪️', desc: 'Cleave reaches 1m further and costs 10 less Resolve.' },
+  { id: 'bloodrush', tree: 'Vanguard', tier: 3, max: 1, name: 'Bloodrush', icon: '🩸', desc: 'Charge recharges 4s faster and hits for 200% damage.' },
+  { id: 'vigor', tree: 'Oathkeeper', tier: 1, max: 2, name: 'Vigour', icon: '❤️', desc: '+8% maximum health per point.' },
+  { id: 'breath', tree: 'Oathkeeper', tier: 2, max: 1, name: 'Deep Breath', icon: '🌬️', desc: 'Second Wind heals 50% instead of 35% and recharges 10s faster.' },
+  { id: 'renew', tree: 'Oathkeeper', tier: 3, max: 1, name: 'Renewing Strikes', icon: '✨', desc: 'Your auto-attacks heal you for 20% of the damage they deal.' },
 ];
 
 export const VENDOR_STOCK = [
