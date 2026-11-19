@@ -124,3 +124,62 @@ body.touch #minimap{right:calc(8px + env(safe-area-inset-right))}
 .tal.has{border-color:#7fbf5a}.tal.can{border-color:#ffd23f;box-shadow:0 0 8px rgba(255,210,63,.45)}.tal.lock{opacity:.5}
 .npcn.portal{color:#d8c4ff}
 @media (max-width:700px){.tcols{grid-template-columns:1fr}}
+
+/* ===== grim dark theme ===== */
+@font-face{font-family:"Cinzel";src:url(fonts/Cinzel.woff2) format("woff2");font-weight:400 900;font-display:swap}
+@font-face{font-family:"EB Garamond";src:url(fonts/EBGaramond.woff2) format("woff2");font-weight:400 800;font-display:swap}
+html,body{background:#070605;font-family:"EB Garamond",Georgia,serif;color:#d9cfbd}
+#vignette{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse 75% 70% at 50% 48%,rgba(0,0,0,0) 55%,rgba(4,3,6,.42) 82%,rgba(2,1,3,.78) 100%),linear-gradient(rgba(10,12,22,.28),rgba(0,0,0,0) 30%,rgba(0,0,0,0) 75%,rgba(8,4,2,.3))}
+body.q-low #vignette{background:radial-gradient(ellipse 80% 75% at 50% 48%,rgba(0,0,0,0) 60%,rgba(2,1,3,.6) 100%)}
+body.q-high #game canvas{filter:contrast(1.07) saturate(.9)}
+#bloodflash{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .35s;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 45%,rgba(120,8,4,.55) 100%)}
+.frame,#topbtns button,.slot,#interact{background:linear-gradient(rgba(22,18,16,.92),rgba(10,8,8,.92));border-color:#4a3c2c;box-shadow:inset 0 0 0 1px rgba(0,0,0,.6),0 2px 8px rgba(0,0,0,.6)}
+.frame{border-radius:3px}
+.fname,.phead,.h3,.logo,#toast,.qt,.npcn,.hpl .nm,#bossbar .bn,#bosscard,.tal .tn,#tbuttons button,.pbtn{font-family:"Cinzel",Georgia,serif;letter-spacing:.5px}
+.lvl{background:#3a2a1c;border:1px solid #6a5032;border-radius:2px}
+.bar{border-radius:1px;background:#140e0c}
+.bar.hp div{background:linear-gradient(#a8261c,#5a0e0a)}
+.bar.enemy div{background:linear-gradient(#7a1a12,#3a0806)}
+.bar.res div{background:linear-gradient(#c8812a,#6a3a10)}
+.hpl .hb{background:#1a0606}.hpl .hb div{background:#a3241a}
+.hpl.tgt .nm{color:#e8c070}
+.mark{color:#d8a840;text-shadow:0 0 8px #000,0 2px 0 #3a1a00;font-family:"Cinzel",serif}
+.npcn{color:#c8b88a}.npcn i{color:#9a907e}
+.ft{font-family:"Cinzel",serif}
+.ft.crit{color:#ffb040}.ft.pl{color:#e0402e}.ft.heal{color:#8fd07a}.ft.xp{color:#b0a0d0}.ft.gold{color:#d8b050}
+#minimap{border:2px solid #4a3c2c;background:#0e0e0c;filter:saturate(.7) brightness(.9)}
+#tracker .qt{color:#d0a850}#tracker .qo{color:#cfc6b4}#tracker .qo.done{color:#9ab878}
+.slot{border-radius:3px;border-width:1px}
+.slot.atk{border-color:#8a6a34}
+.slot,#topbtns button,.cell,.ti{filter:sepia(.35) saturate(.75)}
+#xpbar{background:#100c10;border-radius:1px}#xpfill{background:linear-gradient(#7a5aa0,#3a2a5a)}
+#toast{color:#d8b060;font-weight:700;text-shadow:0 2px 6px #000,0 0 18px rgba(0,0,0,.9)}
+#toast .s{font-family:"EB Garamond",serif;font-size:17px;color:#d9cfbd}
+#interact{border:1px solid #8a6a34;border-radius:3px;color:#e8dcc4;font-family:"Cinzel",serif}
+.screen{background:radial-gradient(ellipse at center,rgba(12,10,14,.35),rgba(3,2,3,.94))}
+.logo{color:#c9a24a;font-weight:700;letter-spacing:4px;text-shadow:0 0 22px rgba(140,20,10,.85),0 3px 0 #1a0a04}
+.sub{color:#b8ac98;font-style:italic;font-size:18px}.sub span{font-style:normal;font-size:13px;color:#7a7060;letter-spacing:2px;text-transform:uppercase}
+#loadfill{background:#8a1a14}
+#tbuttons button,.pbtn{border-radius:2px;border:1px solid #6a5032;background:linear-gradient(#2a201a,#140e0c);color:#e0d4bc}
+#tbuttons button.big{background:linear-gradient(#4a1a12,#22090a);border-color:#8a5a2a}
+.pbtn.go{background:linear-gradient(#5a1c12,#2a0c08);border-color:#a0702c}
+.info{background:rgba(0,0,0,.55);border:1px solid #2e2620;border-radius:2px}
+#panel,#card{background:linear-gradient(#17120f,#0c0908);border:1px solid #6a5032;border-radius:3px;box-shadow:0 0 0 1px #000,0 10px 40px rgba(0,0,0,.8)}
+.phead{color:#d0a850;border-bottom:1px solid #3a2e22;padding-bottom:6px}
+.h3{color:#c09848}
+.dlg{font-size:18px}.dlg i{color:#9a907e}.dlg .rw{color:#c8b88a}
+.cell{border-radius:2px;border-color:#2e261e;background:#0a0807}
+.vrow{border-bottom-color:#2a221a}.vrow:hover{background:#1c1510}
+.tal{background:#14100d;border-color:#2e261e;border-radius:2px}.tal.has{border-color:#7a5a2a}.tal.can{border-color:#c09848;box-shadow:0 0 8px rgba(192,152,72,.35)}
+#topbtns button.glow{box-shadow:0 0 0 1px #c09848,0 0 12px #c09848}
+#bossbar{position:absolute;left:50%;top:64px;transform:translateX(-50%);width:min(520px,62vw);text-align:center;pointer-events:none}
+#bossbar .bn{font-size:20px;color:#d8b060;text-shadow:0 2px 6px #000}
+#bossbar .bt{font-size:13px;font-style:italic;color:#a89a84;margin:-2px 0 3px}
+#bossbar .bb{height:12px;background:#120606;border:1px solid #5a3a22;box-shadow:0 0 10px rgba(0,0,0,.8)}
+#bossbar .bb div{height:100%;background:linear-gradient(#b0281c,#4a0a06);transition:width .2s}
+#bossbar.enraged .bb{box-shadow:0 0 14px rgba(200,30,10,.8)}
+#bosscard{position:absolute;left:0;right:0;top:30%;text-align:center;pointer-events:none;animation:bossin 3.2s forwards}
+#bosscard .bc1{font-size:min(44px,9vw);color:#d8b060;letter-spacing:3px;text-shadow:0 0 24px rgba(160,20,10,.9),0 3px 0 #000}
+#bosscard .bc2{font-family:"EB Garamond",serif;font-style:italic;font-size:19px;color:#c8bca8;text-shadow:0 2px 4px #000}
+@keyframes bossin{0%{opacity:0;transform:scale(1.15)}15%{opacity:1;transform:scale(1)}80%{opacity:1}100%{opacity:0}}
+body.touch #bossbar{top:56px;width:52vw}body.touch #bossbar .bn{font-size:15px}body.touch #bossbar .bt{display:none}

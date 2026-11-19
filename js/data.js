@@ -61,7 +61,9 @@ export const ENEMIES = {
   ashhusk: { name: 'Ash-Choked Husk', model: 'chars/character-zombie', level: 6, hp: 140, dmg: 13, speed: 2.6, aggro: 8, xp: 70, gold: [8, 14], drop: 0.3, scale: 1.05, tint: 0x2a2622 },
   millbones: { name: 'Mill Crypt Guard', model: 'grave/character-skeleton', level: 6, hp: 170, dmg: 14, speed: 3.0, aggro: 8, xp: 80, gold: [9, 15], drop: 0.32, scale: 1.1, tint: 0x3a2a10 },
   brute: { name: 'Ashen Brute', model: 'dun/character-orc', level: 7, hp: 380, dmg: 19, speed: 2.8, aggro: 8.5, xp: 120, gold: [14, 22], drop: 0.5, scale: 1.3, slam: { every: 9, radius: 2.6, dmg: 24, windup: 1.6 } },
-  greywarden: { name: 'The Grey Warden', model: 'chars/character-knight', level: 8, hp: 5500, dmg: 24, gear: true, lootPrefix: 'Ashen', speed: 3.4, aggro: 11, xp: 900, gold: [160, 220], drop: 1, minRarity: 3, scale: 1.9, boss: true, tint: 0x1c1c22, slam: { every: 8, radius: 3.6, dmg: 36, windup: 1.8 }, rain: { every: 9, radius: 2.4, dmg: 28, windup: 1.9, below: 0.5 }, summon: [0.66, 0.33], summonType: 'ashhusk', summonText: 'The Grey Warden calls the ash-choked dead!', enrage: 0.25 },
+  grinder: { name: 'The Bone Grinder', model: 'grave/character-skeleton', level: 7, hp: 2400, dmg: 19, speed: 2.9, aggro: 9, xp: 420, gold: [60, 90], drop: 1, minRarity: 2, scale: 1.9, boss: true, lootPrefix: 'Grinder\'s', slam: { every: 7.5, radius: 3.2, dmg: 28, windup: 1.8 }, summon: [0.5], summonType: 'millbones', summonText: 'The Bone Grinder rattles, and the crypt guards rise!' },
+  ashmatron: { name: 'The Ash Matron', model: 'grave/character-ghost', level: 7, hp: 3000, dmg: 20, speed: 3.0, aggro: 9, xp: 520, gold: [80, 110], drop: 1, minRarity: 3, scale: 2.1, boss: true, lootPrefix: 'Cinder', tint: 0x2a1a12, rain: { every: 7, radius: 2.5, dmg: 26, windup: 1.9 }, summon: [0.6, 0.3], summonType: 'ashhusk', summonText: 'The Ash Matron breathes, and the husks stir in the cinders!' },
+  greywarden: { name: 'The Grey Warden', model: 'chars/character-knight', level: 9, hp: 7200, dmg: 28, gear: true, lootPrefix: 'Ashen', speed: 3.4, aggro: 11, xp: 900, gold: [160, 220], drop: 1, minRarity: 3, scale: 1.9, boss: true, tint: 0x1c1c22, slam: { every: 8, radius: 3.6, dmg: 42, windup: 1.8 }, rain: { every: 9, radius: 2.4, dmg: 32, windup: 1.9, below: 0.5 }, summon: [0.66, 0.33], summonType: 'ashhusk', summonText: 'The Grey Warden calls the ash-choked dead!', enrage: 0.25 },
   wraith: { name: 'The Shrine Wraith', model: 'grave/character-ghost', level: 6, hp: 1350, dmg: 17, speed: 3.0, aggro: 10, xp: 650, gold: [90, 120], drop: 1, minRarity: 3, scale: 2.0, boss: true, rain: { every: 7.5, radius: 2.5, dmg: 28, windup: 1.9 }, summon: [0.6, 0.3], tint: 0x5b2a9a },
 };
 
@@ -79,51 +81,65 @@ export const NPCS = {
   edda: { name: 'Captain Edda Thorne', title: 'Dawnward Captain', model: 'chars/character-soldier', pos: [3.5, -2.5], rot: -0.6 },
   pip: { name: 'Pip Wickerly', title: 'Lamplighter & Goods', model: 'chars/character-male-c', pos: [-5.2, 3.2], rot: 0.9, scale: 0.8, vendor: true },
   marla: { name: 'Marla Reed', title: 'Farmer', model: 'chars/character-female-b', pos: [16, 1.5], rot: 1.6 },
+  caldus: { name: 'Sir Caldus', title: 'Knight of the Dawnward', model: 'chars/character-knight', pos: [-4.6, -4.9], rot: 0.7, gear: true, mul: 0xc8b48a },
 };
 
 export const QUESTS = [
   {
     id: 'q1', name: 'Husks at the Fence', giver: 'edda', req: null,
-    text: 'Adventurer! Good timing. The Hollow mist rolled over Millbrook Farms last night and the farmhands... changed. Hollow Husks are shambling along the fences to the east. Put six of them to rest before they reach the village.',
-    progressText: 'The husks are still out there. East, past the windmill.',
-    doneText: 'Six fewer husks. You fight like a Dawnward, even if you don\'t dress like one. Take these gauntlets, and go and see Pip — the beacon is flickering.',
+    text: 'You. Sellsword. You have a blade, so you will do. The Hollow came over Millbrook Farms in the night, and the farmhands did not wake as themselves. They walk the fences now, grey and hungry, with lamplight eyes. Put six of them to rest before they reach the village. Do not hesitate. They are not who they were.',
+    progressText: 'The husks still walk the eastern fences, past the windmill. End it quickly.',
+    doneText: 'Six fewer. Good. You did not flinch, and that is rarer than courage. Take these gauntlets. Then go to Pip: the beacon is guttering, and when it dies, the mist comes in.',
     objectives: [{ type: 'kill', enemy: 'husk', count: 6, label: 'Hollow Husks put to rest' }],
     reward: { xp: 150, gold: 40, item: { slot: 'hands', rarity: 1, ilvl: 3, name: 'Dawnward Gauntlets' } },
     hint: [27, 4],
   },
   {
     id: 'q2', name: 'Pip\'s Missing Oil', giver: 'pip', req: 'q1',
-    text: 'Oh! Oh good, a hero. The beacon needs Shardlamp Oil or the mist creeps right in. I hid my spare flasks in the Old Graveyard to the north... it seemed clever at the time. Now the bones are up and walking. Could you fetch four flasks?',
-    progressText: 'Four flasks, in the graveyard to the north. Mind the skeletons!',
-    doneText: 'You found them! The beacon will burn bright tonight. Here — healing draughts, my own recipe. Mostly safe.',
-    objectives: [{ type: 'collect', item: 'oil', count: 4, label: 'Shardlamp Oil found' }],
+    text: 'The beacon drinks Shardlamp oil, and I am down to the dregs. I hid my spare flasks in the Old Graveyard, because who robs a graveyard? Then the dead got up. They are still up. Four flasks. Please. If the light goes out tonight, none of us see morning.',
+    progressText: 'Four flasks, somewhere among the graves to the north. The bones do not sleep.',
+    doneText: 'You came back. People don\'t always. The beacon will burn tonight. Take these draughts. They taste of tar and graves, but they will keep your heart beating.',
+    objectives: [{ type: 'collect', item: 'oil', count: 4, label: 'Shardlamp Oil recovered' }],
     reward: { xp: 300, gold: 60, potions: 3 },
     hint: [2, -33],
   },
   {
     id: 'q3', name: 'Whispers in the Woods', giver: 'edda', req: 'q2',
-    text: 'Someone is stealing Shards from the wayside shrines. Tracks lead west into Thornwood, to a bandit camp run by a brute called Grubb. Break the camp and bring Grubb down. He hits hard — when the ground glows red under him, get out of the way.',
-    progressText: 'Grubb\'s camp is west, in Thornwood. Watch for his ground slam.',
-    doneText: 'Grubb was selling Shards to someone in a grey mask... That is worse news than bandits. Take this blade. You have earned it.',
+    text: 'Someone has been prying Shards from the wayside shrines, and every stolen Shard is a door left open for the Hollow. The tracks lead west into Thornwood, to a camp of cutthroats under a brute called Grubb. Break the camp. Bring Grubb down. When the ground burns red beneath him, move, or be buried.',
+    progressText: 'Grubb\'s camp lies west, in Thornwood. Watch for the red ground before his slam.',
+    doneText: 'Grubb was selling the Shards to a rider in a grey mask. A buyer who pays in silver for stolen light... that is no bandit. That is the Hollow Court. Take this blade. You will need it before the end.',
     objectives: [{ type: 'kill', enemy: 'bandit', count: 4, label: 'Thornwood Bandits defeated' }, { type: 'kill', enemy: 'grubb', count: 1, label: 'Grubb defeated' }],
     reward: { xp: 650, gold: 110, item: { slot: 'mainhand', rarity: 2, ilvl: 6, name: 'Thornwood Reaver' } },
     hint: [-31, 8],
   },
   {
     id: 'q4', name: 'The Corrupted Shrine', giver: 'edda', req: 'q3',
-    text: 'Old Mother Bramble sent word: the Thornkin shrine south of here has gone dark. Something Hollow has taken root there — a Wraith, fed on stolen Shards. Destroy it, and the shrine can be cleansed. Dodge the red circles it calls down.',
-    progressText: 'The shrine is south, along the forest path. Dodge the red circles.',
-    doneText: 'The shrine burns clean again. But Bramble had a vision when it broke: a crown with no light, and a voice saying "Maldren rises". Rest a moment, Warden. Then come and see me: there is one more thing.',
+    text: 'Old Mother Bramble sent a crow with a single word: "Rot." The Thornkin shrine to the south has gone dark. A Wraith has nested there, swollen on stolen Shard light. Destroy it, and the shrine may yet be cleansed. When it calls fire down from the sky, keep moving.',
+    progressText: 'The shrine lies south, down the forest path. Never stand still in the red.',
+    doneText: 'The shrine burns clean again, but not before Bramble saw something in the dying light: a crown with no light in it, and a cold voice that said "the Unlit King stirs." Rest a moment, Warden. Someone is waiting to speak with you, and he is not patient.',
     objectives: [{ type: 'kill', enemy: 'wraith', count: 1, label: 'Shrine Wraith destroyed' }],
     reward: { xp: 1100, gold: 220, item: { slot: 'offhand', rarity: 3, ilvl: 8, name: 'Lantern-Warden\'s Aegis' } },
     hint: [-8, 34],
   },
   {
-    id: 'q5', name: 'The Mill of Ashes', giver: 'edda', req: 'q4',
-    text: 'There is more. The old mill beside the windmill has been grinding at night, and the miller is gone. Ash pours out of the cellar. The Grey Warden, Grubb\'s masked buyer, was seen going down there. Go into the Mill of Ashes and stop the Grey Warden. You will be on your own down there, so take potions.',
-    progressText: 'The cellar door glows beside the windmill, east of the village. Recommended level 6 or higher.',
-    doneText: 'You beat the Grey Warden! But the mask crumbled to ash in your hands, and the body was gone. Who was under it? I fear we will find out. Greenhollow is in your debt, Warden.',
-    objectives: [{ type: 'kill', enemy: 'greywarden', count: 1, label: 'Grey Warden defeated' }],
+    id: 'qc', name: 'Sir Caldus Disagrees', giver: 'caldus', req: 'q4', choice: true,
+    text: 'So you are the hired sword who cleansed the Thornkin shrine. You took a Shard from that altar. That Shard belongs to the Dawnward, by law and by blood. The forest clans cannot even guard their own trees. Give it to me, and it will be locked in Greenhollow\'s beacon where it belongs. Or give it back to the tortoise and her crows, and see how long it lasts.',
+    progressText: 'Well? The Shard. Decide.',
+    doneText: '',
+    objectives: [{ type: 'choice', count: 1, label: 'Decide who keeps the Shrine Shard' }],
+    choices: {
+      dawnward: { label: 'Hand the Shard to Sir Caldus (Dawnward)', doneText: 'A sensible choice. The beacon will burn brighter for it, and the Dawnward will remember who chose order over sentiment. Wear this. It marks you as one of ours, whether the forest likes it or not.', reward: { xp: 700, gold: 150, item: { slot: 'ring', rarity: 3, ilvl: 8, name: 'Signet of the Dawnward' } } },
+      thornkin: { label: 'Return the Shard to the shrine (Thornkin)', doneText: 'You would give a Shard back to the trees? ...Very well. Bramble sends you this, by way of a crow that would not stop staring at me. I hope you know what you have done. The Dawnward will remember it.', reward: { xp: 700, gold: 60, potions: 3, item: { slot: 'trinket', rarity: 3, ilvl: 8, name: 'Bramble\'s Heartseed' } } },
+    },
+    reward: { xp: 700, gold: 0 },
+    hint: [-4.6, -4.9],
+  },
+  {
+    id: 'q5', name: 'The Mill of Ashes', giver: 'edda', req: 'qc',
+    text: 'One more thing, and it is the worst. The old mill by the windmill has been grinding at night, and the miller has not been seen in a week. Grey ash pours from the cellar. The Grey Warden, Grubb\'s masked buyer, went down there and has not come up. Three things guard that dark: the Bone Grinder, the Ash Matron, and the Warden itself. Go down. End them. You go alone, so take every draught you can carry.',
+    progressText: 'The cellar door glows beside the windmill, east of the village. Level 6 or higher, and bring draughts.',
+    doneText: 'The Grey Warden is beaten. But the mask crumbled to ash in your hands, and there was no body beneath it. Whoever wore it is still out there. Greenhollow owes you its life, Warden. I fear it will need you again.',
+    objectives: [{ type: 'kill', enemy: 'grinder', count: 1, label: 'The Bone Grinder destroyed' }, { type: 'kill', enemy: 'ashmatron', count: 1, label: 'The Ash Matron destroyed' }, { type: 'kill', enemy: 'greywarden', count: 1, label: 'The Grey Warden defeated' }],
     reward: { xp: 1600, gold: 300, item: { slot: 'mainhand', rarity: 3, ilvl: 9, name: 'Ashen Oathblade' } },
     hint: [14.5, -7.5],
   },
@@ -133,7 +149,7 @@ export const QUESTS = [
 export const TALENT_TREES = [
   { id: 'Bulwark', blurb: 'Pure defence' },
   { id: 'Vanguard', blurb: 'Hit back hard' },
-  { id: 'Oathkeeper', blurb: 'Stay standing' },
+  { id: 'Oathkeeper', blurb: 'Endure (solo build)' },
 ];
 export const TALENTS = [
   { id: 'plate', tree: 'Bulwark', tier: 1, max: 2, name: 'Thick Plate', icon: '🛡️', desc: '+10% armour per point.' },
@@ -157,3 +173,20 @@ export const VENDOR_STOCK = [
   { kind: 'item', price: 260, item: { slot: 'ring', rarity: 2, ilvl: 5, name: 'Lamplighter\'s Band' } },
   { kind: 'item', price: 240, item: { slot: 'trinket', rarity: 2, ilvl: 5, name: 'Pip\'s Lucky Wick' } },
 ];
+
+// Grim look per enemy: colour multiply (mul), glowing eyes, the colour of hit particles (blood is stylised dark-red droplets, no gore), and boss titles.
+const GRIM = {
+  husk: { mul: 0x9aa095, eyes: 0xd02010, blood: 0x3a1410 },
+  skeleton: { mul: 0xbab2a0, eyes: 0x60c0ff, dust: 0x8a8478 },
+  bandit: { mul: 0xa88070, blood: 0x6a0a06 },
+  grubb: { mul: 0x9a6a58, blood: 0x6a0a06, title: 'Fence of Stolen Shards' },
+  ghost: { eyes: 0x9fe0ff, dust: 0x6aa0c0 },
+  ashhusk: { mul: 0x6a6460, eyes: 0xff5a10, dust: 0x5a5450 },
+  millbones: { mul: 0x9a8a70, eyes: 0xff7a20, dust: 0x8a7a60 },
+  brute: { mul: 0x8a8078, eyes: 0xff3010, blood: 0x4a0806 },
+  grinder: { mul: 0xf0e4c8, eyes: 0xff7a20, dust: 0x9a8a70, title: 'Keeper of the Lower Stones' },
+  ashmatron: { eyes: 0xff5a10, dust: 0x5a4a40, title: 'She Who Sifts the Ash' },
+  greywarden: { mul: 0x5a5a64, eyes: 0xff2a10, dust: 0x4a4a50, title: 'Masked Commander of the Hollow Court' },
+  wraith: { eyes: 0xc070ff, dust: 0x8a6ab0, title: 'Hunger of the Broken Shrine' },
+};
+for (const k in GRIM) Object.assign(ENEMIES[k], GRIM[k]);

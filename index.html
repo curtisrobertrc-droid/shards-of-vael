@@ -5,12 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Shards of Vael — Greenhollow (test build)</title>
 <meta name="description" content="Shards of Vael: a fantasy action RPG test build. One zone, one class, four quests.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><polygon points='32,4 52,32 32,60 12,32' fill='%237fd6ff' stroke='%23fff' stroke-width='3'/></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><polygon points='32,4 52,32 32,60 12,32' fill='%238a1a14' stroke='%23c9a24a' stroke-width='3'/></svg>">
+<link rel="preload" href="fonts/Cinzel.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="style.css">
 <script type="importmap">{ "imports": { "three": "./lib/three.module.min.js" } }</script>
 </head>
 <body>
 <div id="game"></div>
+<div id="vignette"></div>
+<div id="bloodflash"></div>
 <div id="labels"></div>
 <div id="hud" class="hidden">
   <div id="pframe" class="frame">
@@ -33,6 +36,8 @@
   <div id="hotbar"></div>
   <div id="xpbar"><div id="xpfill"></div><span id="xptext"></span></div>
   <div id="log"></div>
+  <div id="bossbar" class="hidden"><div class="bn"></div><div class="bt"></div><div class="bb"><div></div></div></div>
+  <div id="bosscard" class="hidden"><div class="bc1"></div><div class="bc2"></div></div>
   <div id="toast"></div>
   <button id="interact" class="hidden">💬 Talk</button>
   <div id="joy" class="hidden"><div id="joyknob"></div></div>
@@ -41,7 +46,7 @@
 <div id="title" class="screen">
   <div class="tbox">
     <div class="logo">Shards of Vael</div>
-    <div class="sub">Greenhollow Vale · test build</div>
+    <div class="sub">The Lantern moon is broken. The dead do not rest.<br><span>Greenhollow Vale · test build</span></div>
     <div id="loadbar"><div id="loadfill"></div></div>
     <div id="tbuttons" class="hidden">
       <button id="btn-continue" class="big hidden">Continue</button>
@@ -56,9 +61,9 @@
     </div>
     <div id="credits" class="hidden info">
       <p>Design & code: Rob, his son & Grok Bot. Original world and story.</p>
-      <p>3D models: <b>Kenney</b> (www.kenney.nl) — Mini Characters, Graveyard Kit, Fantasy Town Kit, Survival Kit, Mini Dungeon, Nature Kit. CC0 / public domain.</p>
+      <p>3D models: <b>Kenney</b> (www.kenney.nl) — Mini Characters, Graveyard Kit, Fantasy Town Kit, Survival Kit, Mini Dungeon, Nature Kit. Extra props from Poly Pizza by <b>Quaternius</b>, <b>iPoly3D</b> and <b>Kay Lousberg</b>. All CC0 / public domain.</p>
       <p>Sound effects: <b>Kenney</b> — RPG Audio, Impact Sounds, Interface Sounds. Extra effects by rubberduck and Juhani Junkala (OpenGameArt). All CC0.</p>
-      <p>Music: <b>RandomMind</b> on OpenGameArt — "Medieval: Exploration", "Medieval: The Old Tower Inn", "Lament for a Warrior's Soul". CC0.</p>
+      <p>Music: <b>Ruhinre</b> "Whispers in the Fog", <b>RandomMind</b> "Lament for a Warrior's Soul", <b>congusbongus</b> "Ancient caverns" (OpenGameArt). Ambience: <b>SketchMan3</b> (wind), <b>zeroisnotnull</b> and <b>IgnasD</b> (crows), <b>Joseph Sardin / BigSoundBank</b> (bell). All CC0.</p><p>Fonts: <b>Cinzel</b> (Natanael Gama) and <b>EB Garamond</b> (Georg Duffner, Octavio Pardo), SIL Open Font Licence.</p>
       <p>Engine: three.js (MIT licence).</p>
     </div>
   </div>
