@@ -18,7 +18,6 @@ const randi = (a, b) => Math.floor(rand(a, b + 1));
 
 // ---------- renderer / scene ----------
 const renderer = new THREE.WebGLRenderer({ antialias: !IS_TOUCH, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, IS_TOUCH ? 1.5 : 1.75));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -45,10 +44,45 @@ addEventListener('resize', resize); resize();
 const hemi = new THREE.HemisphereLight(0xdff2ff, 0x4a5a2a, 1.25); scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xfff0d0, 2.4);
 sun.castShadow = true;
-sun.shadow.mapSize.set(IS_TOUCH ? 1024 : 2048, IS_TOUCH ? 1024 : 2048);
+sun.shadow.mapSize.set(1024, 1024);
 const sc = sun.shadow.camera; sc.left = -30; sc.right = 30; sc.top = 30; sc.bottom = -30; sc.near = 1; sc.far = 120;
 sun.shadow.bias = -0.0008; sun.shadow.normalBias = 0.04;
 scene.add(sun); scene.add(sun.target);
+
+// ---------- settings & performance safeguards ----------
+const SETTINGS_KEY = 'vael_settings_v1';
+let settings = { quality: 'auto', shadows: true, music: true, sfx: true, fps: false };
+try { Object.assign(settings, JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}')); } catch (e) { /* ignore */ }
+let autoLevel = IS_TOUCH ? 'medium' : 'high';
+const QUALITY_NAMES = { auto: 'Auto', low: 'Low', medium: 'Medium', high: 'High' };
+function effQuality() { return settings.quality === 'auto' ? autoLevel : settings.quality; }
+function saveSettings() { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) { /* ignore */ } }
+function applyQuality() {
+  const q = effQuality(); const dpr = window.devicePixelRatio || 1;
+  renderer.setPixelRatio(q === 'low' ? Math.min(dpr, 1) : q === 'medium' ? Math.min(dpr, 1.5) : Math.min(dpr, 2));
+  const sh = settings.shadows && q !== 'low';
+  if (renderer.shadowMap.enabled !== sh) {
+    renderer.shadowMap.enabled = sh; sun.castShadow = sh;
+    scene.traverse((o) => { if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => { m.needsUpdate = true; }); });
+  }
+  const size = q === 'high' ? 2048 : 1024;
+  if (sun.shadow.mapSize.x !== size) { sun.shadow.mapSize.set(size, size); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } }
+  resize();
+}
+applyQuality();
+renderer.domElement.addEventListener('webglcontextlost', (e) => { e.preventDefault(); const t = document.getElementById('toast'); if (t) t.innerHTML = 'Graphics paused<div class="s">Reload the page if the screen stays blank. Your progress is saved.</div>'; });
+const perf = { frames: 0, t: 0, fps: 60, el: null };
+function perfTick(dt) {
+  perf.frames++; perf.t += dt;
+  if (perf.t >= 4) {
+    perf.fps = perf.frames / perf.t; perf.frames = 0; perf.t = 0;
+    if (settings.fps) { if (!perf.el) { perf.el = document.createElement('div'); perf.el.id = 'fps'; document.body.appendChild(perf.el); } perf.el.textContent = `${Math.round(perf.fps)} fps · ${QUALITY_NAMES[effQuality()]}`; }
+    if (settings.quality === 'auto' && perf.fps < 26 && autoLevel !== 'low' && !(window.VAEL && window.VAEL.speed > 1)) {
+      autoLevel = autoLevel === 'high' ? 'medium' : 'low'; applyQuality();
+      if (typeof toast === 'function') toast('', `Graphics set to ${QUALITY_NAMES[autoLevel]} for smoother play (change it in the menu)`);
+    }
+  }
+}
 
 // ---------- assets ----------
 const ASSET_LIST = [
@@ -299,7 +333,7 @@ function attachGear(c) {
   let arm = null, armL = null; c.obj.traverse((o) => { if (o.name === 'arm-right') arm = o; if (o.name === 'arm-left') armL = o; });
   if (arm) {
     const sw = G['chars/weapon-sword'].scene.clone(true);
-    sw.position.set(-0.03, -0.12, 0.06); sw.rotation.set(Math.PI / 2, 0, 0); sw.scale.setScalar(0.9);
+    sw.position.set(0, -0.2, 0.06); sw.rotation.set(0.9, 0, 0); sw.scale.setScalar(1.5);
     arm.add(sw); c.sword = sw;
   }
   if (armL) {
@@ -412,7 +446,7 @@ function addTelegraph(x, z, radius, windup, dmg, src) {
 let actx = null;
 function audio() { if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { actx = null; } } return actx; }
 function beep(freq, dur = 0.08, type = 'square', vol = 0.06, slide = 0) {
-  const a = actx; if (!a || a.state !== 'running') return;
+  const a = actx; if (!a || a.state !== 'running' || !settings.sfx) return;
   const o = a.createOscillator(), g = a.createGain(); o.type = type; o.frequency.value = freq; if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, freq + slide), a.currentTime + dur);
   g.gain.setValueAtTime(vol, a.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + dur); o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime + dur);
 }
@@ -628,7 +662,7 @@ function useSkill(i) {
 function usePotion() {
   const p = state.player; if (!p || p.dead || p.potCd > 0) return;
   if (save.potions <= 0) { toast('', 'No Healing Draughts left. Pip sells them.'); return; }
-  save.potions--; p.potCd = 12; const h = Math.round(p.stats.maxHp * 0.45); p.hp = Math.min(p.stats.maxHp, p.hp + h); addFloat(`+${h}`, p.pos, 'heal', 2.6); sfx.loot(); updateHUD(true);
+  save.potions--; p.potCd = 10; const h = Math.round(p.stats.maxHp * 0.45); p.hp = Math.min(p.stats.maxHp, p.hp + h); addFloat(`+${h}`, p.pos, 'heal', 2.6); sfx.loot(); updateHUD(true);
 }
 function attackCmd() { unlockAudio(); const t = ensureTarget(14); if (t) setTarget(t, true); else toast('', 'No enemies nearby'); }
 
@@ -741,10 +775,13 @@ function openVendor() {
   });
 }
 function openMenu() {
-  openPanel('Menu', `<div class="btnrow" style="flex-direction:column;align-items:flex-start"><button class="pbtn" data-m="resume">Resume</button><button class="pbtn" data-m="save">Save now</button><button class="pbtn" data-m="new">Start a new game</button></div><div class="info"><b>Controls</b><br>${IS_TOUCH ? 'Drag on the left side to move. ⚔️ attacks the nearest enemy. Tap an enemy to target it.' : 'WASD / arrows: move · Click: target · F or Tab: attack nearest · 1–4: skills · Q: potion · E: talk · C/B: bag · Wheel: zoom'}</div><div class="info">3D models by Kenney (kenney.nl), CC0. Engine: three.js (MIT). Shards of Vael is an original world by Rob, his son and Grok Bot.</div>`);
+  const onoff = (v) => v ? 'On' : 'Off';
+  openPanel('Menu', `<div class="btnrow"><button class="pbtn go" data-m="resume">Resume</button><button class="pbtn" data-m="save">Save now</button><button class="pbtn" data-m="new">New game</button></div><div class="h3" style="margin-top:12px">Settings</div><div class="btnrow"><button class="pbtn" data-m="quality">Graphics: ${QUALITY_NAMES[settings.quality]}${settings.quality === 'auto' ? ` (${QUALITY_NAMES[autoLevel]})` : ''}</button><button class="pbtn" data-m="shadows">Shadows: ${onoff(settings.shadows)}</button><button class="pbtn" data-m="music">Music: ${onoff(settings.music)}</button><button class="pbtn" data-m="sfx">Sounds: ${onoff(settings.sfx)}</button><button class="pbtn" data-m="fps">Show FPS: ${onoff(settings.fps)}</button></div><div style="font-size:12px;color:#aaa;margin-top:4px">If the game feels slow on your phone, set Graphics to Low (this also turns shadows off).</div><div class="info"><b>Controls</b><br>${IS_TOUCH ? 'Drag on the left side to move. ⚔️ attacks the nearest enemy. Tap an enemy to target it.' : 'WASD / arrows: move · Click: target · F or Tab: attack nearest · 1–4: skills · Q: potion · E: talk · C/B: bag · Wheel: zoom'}</div><div class="info">3D models by Kenney (kenney.nl), CC0. Engine: three.js (MIT). Shards of Vael is an original world by Rob, his son and Grok Bot.</div>`);
   $('pbody').querySelectorAll('[data-m]').forEach((b) => b.onclick = () => {
     const m = b.dataset.m;
     if (m === 'save') { writeSave(); closePanel(); toast('', 'Game saved'); }
+    else if (m === 'quality') { const order = ['auto', 'low', 'medium', 'high']; settings.quality = order[(order.indexOf(settings.quality) + 1) % 4]; saveSettings(); applyQuality(); openMenu(); }
+    else if (m === 'shadows' || m === 'music' || m === 'sfx' || m === 'fps') { settings[m] = !settings[m]; saveSettings(); applyQuality(); if (m === 'music' && typeof updateMusic === 'function') updateMusic(); openMenu(); }
     else if (m === 'new') { if (confirm('Start again from level 1? Your current progress will be erased.')) { localStorage.removeItem(SAVE_KEY); save = null; location.reload(); } }
     else closePanel();
   });
@@ -824,6 +861,7 @@ addEventListener('keydown', (e) => {
 });
 addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { writeSave(); for (const k in keys) keys[k] = false; } clock.getDelta(); });
 function cycleTarget() {
   const p = state.player; const list = state.enemies.filter((e) => e.state !== 'dead' && e.pos.distanceTo(p.pos) < 16).sort((a, b) => a.pos.distanceTo(p.pos) - b.pos.distanceTo(p.pos));
   if (!list.length) return; const i = list.indexOf(p.target); setTarget(list[(i + 1) % list.length], true);
@@ -981,7 +1019,7 @@ function updateTelegraphs(dt) {
   for (const t of [...state.telegraphs]) {
     t.t += dt; const f = Math.min(1, t.t / t.windup); t.fill.scale.set(Math.max(0.01, f), 1, Math.max(0.01, f));
     if (t.t >= t.windup) {
-      if (!p.dead && t.src.state !== 'dead' && Math.hypot(p.pos.x - t.x, p.pos.z - t.z) < t.radius + 0.3) hurtPlayer(t.dmg);
+      if (!p.dead && t.src.state !== 'dead' && Math.hypot(p.pos.x - t.x, p.pos.z - t.z) < t.radius - 0.2) hurtPlayer(t.dmg);
       ringEffect(new THREE.Vector3(t.x, 0, t.z), t.radius, 0xff6a2a, 0.4);
       scene.remove(t.base); scene.remove(t.fill); state.telegraphs.splice(state.telegraphs.indexOf(t), 1);
     }
@@ -1014,6 +1052,7 @@ function frame() {
   requestAnimationFrame(frame);
   const dt = Math.min(0.05, clock.getDelta());
   const n = (window.VAEL && window.VAEL.speed) || 1;
+  if (state.started && !state.paused && !document.hidden) perfTick(dt); else if (perf.el && !settings.fps) { perf.el.remove(); perf.el = null; }
   try { if (state.started && state.player) for (let i = 0; i < n; i++) step(n > 1 ? 0.05 : dt); } catch (err) { console.error(err); }
   renderer.render(scene, camera);
 }
@@ -1075,4 +1114,5 @@ window.VAEL = {
   state, get save() { return save; }, QUESTS, startGame, debugMove, useSkill, usePotion, attackCmd, interact, openDialog, closePanel, openChar, openVendor,
   completeQuest: (id) => completeQuest(QUESTS.find((q) => q.id === id)), acceptQuest: (id) => acceptQuest(QUESTS.find((q) => q.id === id)), equipItem, nearbyInteractable, npcQuestFor,
   setZoom: (h) => { viewH = h; resize(); },
+  setSetting: (k, v) => { settings[k] = v; saveSettings(); applyQuality(); }, get settings() { return settings; }, get perf() { return perf; },
 };

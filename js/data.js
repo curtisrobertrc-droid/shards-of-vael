@@ -6,19 +6,19 @@ export const RARITY = [
   { id: 'epic', name: 'Epic', color: '#b866ff', hex: 0xb866ff },
   { id: 'legendary', name: 'Legendary', color: '#ff9d2a', hex: 0xff9d2a },
 ];
-export const SLOTS = ['head', 'chest', 'hands', 'legs', 'feet', 'mainhand', 'offhand', 'ring'];
-export const SLOT_NAMES = { head: 'Head', chest: 'Chest', hands: 'Hands', legs: 'Legs', feet: 'Feet', mainhand: 'Main hand', offhand: 'Off hand', ring: 'Ring' };
-export const SLOT_ICONS = { head: '🪖', chest: '👕', hands: '🧤', legs: '👖', feet: '🥾', mainhand: '⚔️', offhand: '🛡️', ring: '💍' };
+export const SLOTS = ['head', 'shoulders', 'chest', 'hands', 'legs', 'feet', 'mainhand', 'offhand', 'ring', 'trinket'];
+export const SLOT_NAMES = { head: 'Head', shoulders: 'Shoulders', chest: 'Chest', hands: 'Hands', legs: 'Legs', feet: 'Feet', mainhand: 'Main hand', offhand: 'Off hand', ring: 'Ring', trinket: 'Trinket' };
+export const SLOT_ICONS = { head: '🪖', shoulders: '🧥', trinket: '🔮', chest: '👕', hands: '🧤', legs: '👖', feet: '🥾', mainhand: '⚔️', offhand: '🛡️', ring: '💍' };
 export const STAT_NAMES = { dmg: 'Damage', armor: 'Armour', might: 'Might', stamina: 'Stamina', crit: 'Crit %', haste: 'Haste %' };
 
 const BASES = {
-  head: ['Cap', 'Helm', 'Coif'], chest: ['Tunic', 'Hauberk', 'Jerkin'], hands: ['Gloves', 'Gauntlets', 'Grips'],
+  head: ['Cap', 'Helm', 'Coif'], shoulders: ['Pauldrons', 'Spaulders', 'Mantle'], trinket: ['Charm', 'Idol', 'Talisman'], chest: ['Tunic', 'Hauberk', 'Jerkin'], hands: ['Gloves', 'Gauntlets', 'Grips'],
   legs: ['Leggings', 'Greaves', 'Trousers'], feet: ['Boots', 'Sabatons', 'Treads'], mainhand: ['Sword', 'Blade', 'Longsword'],
   offhand: ['Buckler', 'Kite Shield', 'Heater Shield'], ring: ['Band', 'Ring', 'Signet'],
 };
 const PRE = [['Worn', 'Rough', 'Plain', 'Patched'], ['Sturdy', 'Militia', 'Farmhand\'s', 'Riverstone'], ['Dawnward', 'Hollowbane', 'Thornwood', 'Lamplit'], ['Shardforged', 'Moonlit', 'Unbroken', 'Lanternheart']];
 const SUF = ['', ' of the Bear', ' of the Ox', ' of the Fox', ' of the Owl', ' of Embers'];
-const ARMOR_K = { head: 0.9, chest: 1.4, hands: 0.7, legs: 1.1, feet: 0.8, offhand: 1.6, ring: 0, mainhand: 0 };
+const ARMOR_K = { shoulders: 0.8, trinket: 0, head: 0.9, chest: 1.4, hands: 0.7, legs: 1.1, feet: 0.8, offhand: 1.6, ring: 0, mainhand: 0 };
 
 let uid = 1;
 export function newId() { return 'i' + Date.now().toString(36) + (uid++); }
@@ -29,7 +29,7 @@ export function makeItem(slot, rarity, ilvl, rnd = Math.random, forcedName) {
   if (slot === 'mainhand') it.stats.dmg = Math.round(3 + ilvl * 1.6 * (1 + 0.25 * r));
   else if (ARMOR_K[slot] > 0) it.stats.armor = Math.max(1, Math.round((1.5 + ilvl * 1.3) * ARMOR_K[slot] * (1 + 0.25 * r)));
   const pool = ['might', 'stamina', 'crit', 'haste'];
-  const n = slot === 'ring' ? Math.max(1, r + 1) : r;
+  const n = (slot === 'ring' || slot === 'trinket') ? Math.max(1, r + 1) : r;
   for (let i = 0; i < n && pool.length; i++) {
     const k = pool.splice(Math.floor(rnd() * pool.length), 1)[0];
     let v = (k === 'crit' || k === 'haste') ? Math.max(1, Math.round(ilvl * 0.45 * (0.8 + rnd() * 0.4) + r * 0.5)) : Math.max(1, Math.round((1 + ilvl * 0.9) * (0.8 + rnd() * 0.4)));
@@ -56,9 +56,9 @@ export const ENEMIES = {
   husk: { name: 'Hollow Husk', model: 'chars/character-zombie', level: 1, hp: 45, dmg: 6, speed: 2.4, aggro: 7, xp: 22, gold: [2, 5], drop: 0.28, scale: 1.0 },
   skeleton: { name: 'Restless Bones', model: 'grave/character-skeleton', level: 3, hp: 80, dmg: 9, speed: 3.0, aggro: 7.5, xp: 40, gold: [4, 9], drop: 0.32, scale: 1.0 },
   bandit: { name: 'Thornwood Bandit', model: 'chars/character-raider', level: 4, hp: 105, dmg: 10, speed: 3.4, aggro: 8, xp: 55, gold: [6, 12], drop: 0.35, scale: 1.0 },
-  grubb: { name: 'Grubb the Pilferer', model: 'chars/character-raider', level: 5, hp: 680, dmg: 15, speed: 3.3, aggro: 9, xp: 320, gold: [40, 60], drop: 1, minRarity: 2, scale: 1.45, elite: true, slam: { every: 7, radius: 3.6, dmg: 28, windup: 1.4 }, tint: 0x6a1b1b },
+  grubb: { name: 'Grubb the Pilferer', model: 'chars/character-raider', level: 5, hp: 680, dmg: 15, speed: 3.3, aggro: 9, xp: 320, gold: [40, 60], drop: 1, minRarity: 2, scale: 1.45, elite: true, slam: { every: 7.5, radius: 3.4, dmg: 26, windup: 1.75 }, tint: 0x6a1b1b },
   ghost: { name: 'Shrine Shade', model: 'grave/character-ghost', level: 5, hp: 100, dmg: 12, speed: 3.3, aggro: 8, xp: 60, gold: [6, 12], drop: 0.35, scale: 1.0 },
-  wraith: { name: 'The Shrine Wraith', model: 'grave/character-ghost', level: 6, hp: 1350, dmg: 17, speed: 3.0, aggro: 10, xp: 650, gold: [90, 120], drop: 1, minRarity: 3, scale: 2.0, boss: true, rain: { every: 6.5, radius: 2.6, dmg: 32, windup: 1.6 }, summon: [0.6, 0.3], tint: 0x5b2a9a },
+  wraith: { name: 'The Shrine Wraith', model: 'grave/character-ghost', level: 6, hp: 1350, dmg: 17, speed: 3.0, aggro: 10, xp: 650, gold: [90, 120], drop: 1, minRarity: 3, scale: 2.0, boss: true, rain: { every: 7.5, radius: 2.5, dmg: 28, windup: 1.9 }, summon: [0.6, 0.3], tint: 0x5b2a9a },
 };
 
 export function xpToNext(level) { return Math.round(80 * Math.pow(level, 1.7) + 20 * level); }
@@ -122,5 +122,7 @@ export const VENDOR_STOCK = [
   { kind: 'item', price: 90, item: { slot: 'feet', rarity: 1, ilvl: 4, name: 'Millbrook Boots' } },
   { kind: 'item', price: 120, item: { slot: 'legs', rarity: 1, ilvl: 4, name: 'Riverstone Greaves' } },
   { kind: 'item', price: 160, item: { slot: 'mainhand', rarity: 1, ilvl: 5, name: 'Iron Longsword' } },
+  { kind: 'item', price: 100, item: { slot: 'shoulders', rarity: 1, ilvl: 4, name: 'Dawnward Pauldrons' } },
   { kind: 'item', price: 260, item: { slot: 'ring', rarity: 2, ilvl: 5, name: 'Lamplighter\'s Band' } },
+  { kind: 'item', price: 240, item: { slot: 'trinket', rarity: 2, ilvl: 5, name: 'Pip\'s Lucky Wick' } },
 ];

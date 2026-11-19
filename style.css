@@ -74,7 +74,7 @@ button{font-family:inherit;cursor:pointer}
 .cols{display:flex;gap:14px;flex-wrap:wrap}
 .cols>div{flex:1;min-width:260px}
 .grid{display:grid;grid-template-columns:repeat(5,52px);gap:6px}
-.eq{display:grid;grid-template-columns:repeat(4,52px);gap:6px;margin-bottom:10px}
+.eq{display:grid;grid-template-columns:repeat(5,52px);gap:6px;margin-bottom:10px}
 .cell{width:52px;height:52px;border-radius:8px;border:2px solid #3a3222;background:#0e0c08;display:flex;align-items:center;justify-content:center;font-size:24px;position:relative;color:#fff;padding:0}
 .cell.empty{opacity:.35;font-size:18px}
 .cell .il{position:absolute;right:2px;bottom:0;font-size:10px}
@@ -103,3 +103,11 @@ body.touch #interact{left:auto;right:20px;bottom:180px;transform:none}
 body.touch .frame{width:180px;padding:4px 6px}
 body.touch #tframe{width:180px}
 @media (max-height:500px){body.touch #tracker{display:none}}
+
+body.touch #toast{top:34%;font-size:19px;white-space:normal;width:70vw}
+body.touch #toast .s{font-size:13px}
+#fps{position:fixed;left:50%;bottom:40px;transform:translateX(-50%);font-size:11px;color:#cfc;background:rgba(0,0,0,.5);padding:1px 6px;border-radius:4px;pointer-events:none;z-index:4}
+body.touch #pframe{left:calc(8px + env(safe-area-inset-left))}
+body.touch #hotbar{right:calc(12px + env(safe-area-inset-right));bottom:calc(20px + env(safe-area-inset-bottom))}
+body.touch #minimap{right:calc(8px + env(safe-area-inset-right))}
+@media (orientation:portrait){body.touch #hotbar{grid-template-columns:repeat(3,58px);gap:6px}body.touch .slot{width:58px;height:58px;font-size:24px}body.touch #tracker{top:126px;right:8px;width:150px}body.touch #topbtns{top:126px;right:auto;left:8px;top:96px}body.touch #tframe{top:120px}body.touch #interact{bottom:230px}}
