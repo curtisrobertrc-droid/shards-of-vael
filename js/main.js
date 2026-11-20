@@ -2,7 +2,8 @@
 import * as THREE from 'three';
 import { GLTFLoader } from '../lib/addons/GLTFLoader.js';
 import * as SkeletonUtils from '../lib/addons/SkeletonUtils.js';
-import { RARITY, SLOTS, SLOT_NAMES, SLOT_ICONS, STAT_NAMES, makeItem, rollRarity, randomSlot, ENEMIES, xpToNext, LEVEL_CAP, SKILLS, NPCS, QUESTS, VENDOR_STOCK, newId, TALENTS, TALENT_TREES } from './data.js';
+import { mergeGeometries } from '../lib/addons/BufferGeometryUtils.js';
+import { RARITY, SLOTS, SLOT_NAMES, SLOT_ICONS, STAT_NAMES, makeItem, rollRarity, randomSlot, ENEMIES, xpToNext, LEVEL_CAP, SKILLS, NPCS, QUESTS, VENDOR_STOCK, newId, TALENTS, TALENT_TREES, QUEST_SPOTS, DAILY_POOL, FACTIONS, REP_TIERS, WORLD_BOSS } from './data.js';
 
 const SAVE_KEY = 'vael_save_v1';
 const IS_TOUCH = (window.matchMedia && matchMedia('(pointer: coarse)').matches) || ('ontouchstart' in window && navigator.maxTouchPoints > 0);
@@ -28,7 +29,7 @@ $('game').appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
 // grim dusk look: cold key light, heavy fog, warm fires for contrast
-const LOOK = { world: { bg: 0x1b1f24, fogNear: 86, fogFar: 128, hemi: 1.0, hemiSky: 0x8a96aa, hemiGround: 0x2a241c, sun: 1.95, sunCol: 0xa8b4d0 }, mill: { bg: 0x080605, fogNear: 86, fogFar: 120, hemi: 0.45, hemiSky: 0xb0a090, hemiGround: 0x100c0a, sun: 0.4, sunCol: 0x9a8a80 } };
+const LOOK = { world: { bg: 0x1b1f24, fogNear: 86, fogFar: 128, hemi: 1.0, hemiSky: 0x8e9298, hemiGround: 0x2a241c, sun: 1.95, sunCol: 0xb2b4bc }, mill: { bg: 0x080605, fogNear: 86, fogFar: 120, hemi: 0.45, hemiSky: 0xb0a090, hemiGround: 0x100c0a, sun: 0.4, sunCol: 0x9a8a80 } };
 scene.background = new THREE.Color(LOOK.world.bg);
 scene.fog = new THREE.Fog(LOOK.world.bg, LOOK.world.fogNear, LOOK.world.fogFar);
 
@@ -100,7 +101,7 @@ const ASSET_LIST = [
 const G = {};
 const RECOLOR = { leafsGreen: 0x4a5a30, leafsDark: 0x2c3826, leafsFall: 0x5a4028, grass: 0x4d5832, dirt: 0x5a4e40, woodBark: 0x4a3626, woodBarkDark: 0x33261c, stone: 0x4e4c48, stoneDark: 0x3c3a37, corn: 0x6a6040, colorRed: 0x6a2a22, colorYellow: 0x6a6038, colorPurple: 0x4a3a5a };
 // Colour grade for the bright Kenney palettes: desaturate, darken and cool each kit's shared colour texture once.
-const GRADE = { town: { desat: 0.66, dark: 0.72, t: [0.96, 0.97, 1.04] }, grave: { desat: 0.64, dark: 0.78, t: [0.95, 0.97, 1.05] }, surv: { desat: 0.55, dark: 0.74, t: [0.98, 0.95, 0.94] }, dun: { desat: 0.45, dark: 0.78, t: [1, 0.97, 0.95] }, chars: { desat: 0.42, dark: 0.82, t: [0.97, 0.97, 1.02] }, pp: { desat: 0.35, dark: 0.7, t: [0.95, 0.95, 1] } };
+const GRADE = { town: { desat: 0.8, dark: 0.7, t: [1.02, 0.97, 0.9] }, grave: { desat: 0.76, dark: 0.76, t: [1.0, 0.97, 0.92] }, surv: { desat: 0.55, dark: 0.74, t: [0.98, 0.95, 0.94] }, dun: { desat: 0.45, dark: 0.78, t: [1, 0.97, 0.95] }, chars: { desat: 0.42, dark: 0.82, t: [0.97, 0.97, 1.02] }, pp: { desat: 0.35, dark: 0.7, t: [0.95, 0.95, 1] } };
 const gradedTex = new Map();
 function gradeMap(tex, kit) {
   const o = GRADE[kit]; const img = tex.image; if (!o || !img || !img.width) return tex;
@@ -127,7 +128,7 @@ async function loadAssets(onProgress) {
       if (!o.isMesh) return; o.castShadow = true; o.receiveShadow = true;
       const m = o.material; if (!m) return;
       m.metalness = 0; m.roughness = 1;
-      if (kit === 'nature') { if (RECOLOR[m.name] !== undefined) m.color.setHex(RECOLOR[m.name]); else gradeColor(m.color, 0.5, 0.72); }
+      if (kit === 'nature') { if (RECOLOR[m.name] !== undefined) m.color.setHex(RECOLOR[m.name]); else gradeColor(m.color, 0.72, 0.66); }
       else if (m.map) m.map = gradeMap(m.map, kit);
       else if (m.name === 'Water') { m.color.setHex(0x1c2628); }
       else gradeColor(m.color, 0.45, 0.72);
@@ -175,6 +176,7 @@ const POIS = {
   farm: { x: 27, z: 4, r: 11, name: 'Millbrook Farms' },
   grave: { x: 2, z: -33, r: 10.5, name: 'Old Graveyard' },
   camp: { x: -31, z: 8, r: 9.5, name: 'Thornwood Camp' },
+  barrow: { x: 28, z: -19, r: 8, name: 'Millbrook Barrow' },
   shrine: { x: -8, z: 34, r: 9.5, name: 'Bramble Shrine' },
 };
 const PATHS = [
@@ -345,11 +347,32 @@ function addFlame(x, y, z, size = 1, mill = false) {
     const gr = g.createRadialGradient(32, 36, 2, 32, 36, 30); gr.addColorStop(0, 'rgba(255,240,190,1)'); gr.addColorStop(0.25, 'rgba(255,170,60,0.9)'); gr.addColorStop(0.6, 'rgba(200,60,10,0.35)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
     g.fillStyle = gr; g.fillRect(0, 0, 64, 64); flameTex = new THREE.CanvasTexture(c);
   }
-  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: flameTex, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, fog: false }));
+  const sp = new THREE.Object3D(); // drawn by the shared flame Points layer (one draw call for every flame)
   sp.position.set(x, y, z); sp.scale.set(size, size * 1.3, 1); sp.userData = { base: size, ph: Math.random() * 10, mill };
-  sp.visible = !mill; scene.add(sp); (world.flames ||= []).push(sp); return sp;
+  sp.visible = !mill; (world.flames ||= []).push(sp); return sp;
 }
-function makeCrow() {
+// All crows share two InstancedMeshes (bodies, wings): 2 draw calls instead of 3 per crow.
+const CROW_MAX = 16; let crowIM = null;
+function initCrows() {
+  const body = new THREE.ConeGeometry(0.12, 0.6, 5); body.rotateX(Math.PI / 2);
+  const wingGeo = new THREE.BufferGeometry(); wingGeo.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0.15, 0, 0, -0.15, 0.7, 0, -0.05], 3)); wingGeo.computeVertexNormals();
+  const b = new THREE.InstancedMesh(body, new THREE.MeshLambertMaterial({ color: 0x0c0c10 }), CROW_MAX);
+  const w = new THREE.InstancedMesh(wingGeo, new THREE.MeshLambertMaterial({ color: 0x101014, side: THREE.DoubleSide }), CROW_MAX * 2);
+  for (const m of [b, w]) { m.frustumCulled = false; m.castShadow = false; m.count = 0; scene.add(m); }
+  crowIM = { b, w };
+}
+const _cm = new THREE.Matrix4(), _cw = new THREE.Matrix4(), _cq = new THREE.Quaternion(), _ce = new THREE.Euler(), _cv = new THREE.Vector3(), _cs = new THREE.Vector3(1, 1, 1);
+function updateCrowMeshes() {
+  if (!crowIM) return; let n = 0;
+  for (const c of world.crows || []) {
+    if (!c.visible || n >= CROW_MAX) continue; const u = c.userData;
+    c.updateMatrix(); crowIM.b.setMatrixAt(n, c.matrix);
+    for (const side of [0, 1]) { _ce.set(0, 0, side ? -u.wl.rotation.z : u.wl.rotation.z); _cq.setFromEuler(_ce); _cs.set(side ? -1 : 1, 1, 1); _cw.compose(_cv.set(0, 0, 0), _cq, _cs); _cm.multiplyMatrices(c.matrix, _cw); crowIM.w.setMatrixAt(n * 2 + side, _cm); }
+    n++;
+  }
+  crowIM.b.count = n; crowIM.w.count = n * 2; crowIM.b.instanceMatrix.needsUpdate = true; crowIM.w.instanceMatrix.needsUpdate = true;
+}
+function makeCrowOld() {
   const g = new THREE.Group(); const mat = new THREE.MeshLambertMaterial({ color: 0x0c0c10 });
   const body = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.6, 5), mat); body.rotation.x = Math.PI / 2; g.add(body);
   const wingGeo = new THREE.BufferGeometry(); wingGeo.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0.15, 0, 0, -0.15, 0.7, 0, -0.05], 3)); wingGeo.computeVertexNormals();
@@ -375,7 +398,7 @@ function dressWorld(r) {
   for (const [x, z] of [[3, 3], [-3, -3], [3, -4], [-3.5, 3.5]]) addFlame(x, 3.35, z, 0.75);
   addStatic('grave/fire-basket', [{ x: 2.2, z: 1.6, s: 2.6 }, { x: -2.2, z: -1.6, s: 2.6 }]); addCollider(2.2, 1.6, 0.5); addCollider(-2.2, -1.6, 0.5);
   addFlame(2.2, 0.8, 1.6, 1.5); addFlame(-2.2, 0.8, -1.6, 1.5);
-  const vl = new THREE.PointLight(0xff8a40, 20, 15, 1.5); vl.position.set(0, 3.6, 0); scene.add(vl);
+  const vl = new THREE.PointLight(0xff8a40, 10, 12, 1.6); vl.position.set(0, 3.6, 0); scene.add(vl);
   addStatic('grave/stone-wall-damaged', [{ x: -12, z: -9, r: 0.8, s: 3 }, { x: 12.5, z: 9.5, r: -2.3, s: 3 }, { x: -13.5, z: 9, r: 2.3, s: 3 }]);
   addStatic('grave/column-large', [{ x: -14.5, z: -6, s: 2.6 }, { x: 14.5, z: 6.5, s: 2.2 }]);
   addStatic('grave/cross-wood', [[20.2, 1], [26, 8.5], [33.5, 0], [29, 11.5]].map(([x, z]) => ({ x, z, s: 2.4, r: r() * 0.6 - 0.3 })));
@@ -387,14 +410,54 @@ function dressWorld(r) {
   addStatic('grave/stone-wall-damaged', [{ x: -18, z: 18, r: 0.3, s: 3 }, { x: 22, z: -18, r: 1.8, s: 3 }, { x: -22, z: -16, r: 2.6, s: 3 }]);
   addStatic('grave/column-large', [{ x: -19.5, z: 19.5, s: 2.4 }, { x: 23.5, z: -16.5, s: 2.6 }]);
   addStatic('grave/pine-fall-crooked', [{ x: 16, z: -22, s: 3, r: 1 }, { x: -24, z: 24, s: 3, r: 2.5 }]);
+  // Millbrook Barrow: the world boss's field of old graves
+  const bx = 28, bz = -19;
+  addStatic('grave/rocks-tall', [0, 1, 2, 3, 4, 5, 6].map((i) => { const a = i / 7 * Math.PI * 2 + 0.3; return { x: bx + Math.cos(a) * 7.4, z: bz + Math.sin(a) * 7.4, s: 1.6 + r() * 0.6, r: a }; }));
+  for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2 + 0.3; addCollider(bx + Math.cos(a) * 7.4, bz + Math.sin(a) * 7.4, 0.9); }
+  addStatic('grave/cross-wood', [[bx - 3, bz + 4.5], [bx + 4, bz - 3.5], [bx + 1.5, bz + 5.5]].map(([x, z]) => ({ x, z, s: 2.4, r: r() * 0.8 - 0.4 })));
+  addStatic('pp/skull', [{ x: bx + 0.8, z: bz - 1, s: 0.34, r: 2 }, { x: bx - 2.5, z: bz - 2.4, s: 0.3, r: 0.6 }]);
+  addStatic('grave/candle', [[bx - 6, bz + 2], [bx + 6, bz - 1], [bx, bz - 6.3]].map(([x, z]) => ({ x, z, s: 2.2 })));
+  for (const [x, z] of [[bx - 6, bz + 2], [bx + 6, bz - 1], [bx, bz - 6.3]]) addFlame(x, 0.55, z, 0.45);
   world.worldLights = [world.fire, world.shrineLight, gl, vl];
   // crows circling the graveyard, farm and shrine
-  world.crows = [];
-  for (const [ox, oz, n] of [[gx, gz, 4], [27, 4, 3], [-8, 35, 3], [-31, 8, 2]]) for (let i = 0; i < n; i++) { const c = makeCrow(); c.userData.o = [ox, oz]; c.userData.rad = 4 + r() * 5; c.userData.sp = 0.25 + r() * 0.3; c.userData.a = r() * 6.3; c.userData.h = 7 + r() * 3; world.crows.push(c); }
+  world.crows = []; initCrows();
+  for (const [ox, oz, n] of [[gx, gz, 4], [27, 4, 3], [-8, 35, 3], [-31, 8, 2]]) for (let i = 0; i < n; i++) { const c = new THREE.Object3D(); c.userData = { wl: { rotation: { z: 0 } }, wr: { rotation: { z: 0 } } }; c.userData.o = [ox, oz]; c.userData.rad = 4 + r() * 5; c.userData.sp = 0.25 + r() * 0.3; c.userData.a = r() * 6.3; c.userData.h = 7 + r() * 3; world.crows.push(c); }
+}
+// Shared additive Points layers: one for every flame, one for every pair of enemy eyes.
+const GLOW_MAX = 256; const glow = {};
+function makeGlowLayer(tex, depthTest) {
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(GLOW_MAX * 3), 3).setUsage(THREE.DynamicDrawUsage));
+  geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(GLOW_MAX * 3), 3).setUsage(THREE.DynamicDrawUsage));
+  geo.setAttribute('size', new THREE.BufferAttribute(new Float32Array(GLOW_MAX), 1).setUsage(THREE.DynamicDrawUsage));
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { map: { value: tex }, px: { value: 40 } }, transparent: true, depthWrite: false, depthTest, blending: THREE.AdditiveBlending,
+    vertexShader: 'attribute float size; attribute vec3 color; varying vec3 vC; uniform float px; void main(){ vC = color; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); gl_PointSize = size * px; }',
+    fragmentShader: 'uniform sampler2D map; varying vec3 vC; void main(){ vec4 t = texture2D(map, gl_PointCoord); gl_FragColor = vec4(vC * t.rgb, t.a); }',
+  });
+  const pts = new THREE.Points(geo, mat); pts.frustumCulled = false; pts.renderOrder = 5; scene.add(pts); return pts;
+}
+const _gv = new THREE.Vector3(), _gb = new THREE.Vector2(), _gc = new THREE.Color();
+function updateGlow() {
+  if (!glow.flames) { if (!flameTex) addFlame(0, -99, 0, 0.01, true); glow.flames = makeGlowLayer(flameTex, true); glow.eyes = makeGlowLayer(getGlowTex(), false); glow.eyeList ||= []; }
+  renderer.getDrawingBufferSize(_gb); const px = _gb.y / Math.max(1, camera.top - camera.bottom) * camera.zoom;
+  // flames
+  let g = glow.flames.geometry, P = g.attributes.position.array, C = g.attributes.color.array, S = g.attributes.size.array, n = 0;
+  for (const f of world.flames || []) { if (!f.visible || n >= GLOW_MAX) continue; P[n * 3] = f.position.x; P[n * 3 + 1] = f.position.y; P[n * 3 + 2] = f.position.z; C[n * 3] = C[n * 3 + 1] = C[n * 3 + 2] = 1; S[n] = f.scale.y * 0.9; n++; }
+  g.setDrawRange(0, n); g.attributes.position.needsUpdate = g.attributes.color.needsUpdate = g.attributes.size.needsUpdate = true; glow.flames.material.uniforms.px.value = px;
+  // eyes
+  g = glow.eyes.geometry; P = g.attributes.position.array; C = g.attributes.color.array; S = g.attributes.size.array; n = 0;
+  glow.eyeList = glow.eyeList.filter((e) => e.holder.parent);
+  for (const e of glow.eyeList) {
+    if (!e.holder.visible || !e.grp.visible || !e.holder.children[0].visible) continue; e.holder.updateWorldMatrix(true, false); _gc.set(e.color);
+    for (const d of e.grp.children) { if (n >= GLOW_MAX) break; _gv.copy(d.position).applyMatrix4(e.grp.matrix).applyMatrix4(e.holder.matrixWorld); P[n * 3] = _gv.x; P[n * 3 + 1] = _gv.y; P[n * 3 + 2] = _gv.z; C[n * 3] = _gc.r; C[n * 3 + 1] = _gc.g; C[n * 3 + 2] = _gc.b; S[n] = e.size * e.grp.scale.x; n++; }
+  }
+  g.setDrawRange(0, n); g.attributes.position.needsUpdate = g.attributes.color.needsUpdate = g.attributes.size.needsUpdate = true; glow.eyes.material.uniforms.px.value = px;
 }
 function updateDressing(dt, t) {
   for (const f of world.flames || []) { if (!f.visible) continue; const u = f.userData; const k = 1 + Math.sin(t * 13 + u.ph) * 0.08 + Math.sin(t * 7.3 + u.ph) * 0.06; f.scale.set(u.base * k, u.base * 1.3 * (2 - k), 1); }
   for (const c of world.crows || []) { if (!c.visible) continue; const u = c.userData; u.a += dt * u.sp; const x = u.o[0] + Math.cos(u.a) * u.rad, z = u.o[1] + Math.sin(u.a) * u.rad; c.position.set(x, u.h + Math.sin(t + u.a) * 0.4, z); c.rotation.y = -u.a; const w = Math.sin(t * 9 + u.a * 3) * 0.6; u.wl.rotation.z = w; u.wr.rotation.z = -w; }
+  updateCrowMeshes();
 }
 const colGrid = {};
 function cellKey(x, z) { return Math.floor(x / 6) + ',' + Math.floor(z / 6); }
@@ -560,7 +623,7 @@ function freshSave() {
   const sword = makeItem('mainhand', 0, 1, rr, 'Worn Sword'); sword.stats = { dmg: 4 }; sword.value = 3;
   const shield = makeItem('offhand', 0, 1, rr, 'Wooden Buckler'); shield.stats = { armor: 4 }; shield.value = 3;
   const tunic = makeItem('chest', 0, 1, rr, 'Padded Tunic'); tunic.stats = { armor: 3 }; tunic.value = 2;
-  return { v: 1, level: 1, xp: 0, gold: 10, potions: 2, hp: null, pos: [0.5, 4.5], equip: { mainhand: sword, offhand: shield, chest: tunic }, bag: [], quests: {}, stats: { kills: 0, deaths: 0 }, finished: false };
+  return { v: 1, level: 1, xp: 0, gold: 10, potions: 2, hp: null, pos: [0.5, 4.5], equip: { mainhand: sword, offhand: shield, chest: tunic }, bag: [], quests: {}, stats: { kills: 0, deaths: 0 }, finished: false, rep: { dawnward: 0, thornkin: 0 }, daily: null, wb: null };
 }
 let save = null;
 function loadSave() { try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && s.v === 1) return s; } catch (e) { /* ignore */ } return null; }
@@ -650,11 +713,14 @@ function defineSpawns() {
   SPAWNS.push({ type: 'grubb', x: -31.5, z: 10.5 });
   ring('ghost', -8, 33, 3, 5);
   SPAWNS.push({ type: 'wraith', x: -8, z: 37.5 });
+  SPAWNS.push({ type: 'wendel', x: 36, z: 9 });
+  SPAWNS.push({ type: WORLD_BOSS.type, x: WORLD_BOSS.x, z: WORLD_BOSS.z, worldBoss: true });
 }
 function spawnEnemy(sp) {
   const def = ENEMIES[sp.type];
   const c = makeChar(def.model, 1.8 * def.scale, def.tint ?? null, def.mul ?? null);
   if (def.eyes) addEyes(c, def);
+  if (def.rim) for (const m of c.meshes) { m.material.emissive = new THREE.Color(def.rim); m.material.emissiveIntensity = 1; m.userData.baseEm = m.material.emissive.clone(); m.userData.baseEmI = 1; } // self-lit edge so backlit bosses stay readable
   const e = { sp, type: sp.type, def, c, pos: new THREE.Vector3(sp.x, 0, sp.z), home: new THREE.Vector3(sp.x, 0, sp.z), hp: def.hp, maxHp: def.hp, state: 'idle', atkT: rand(0.5, 1.5), stunT: 0, wanderT: rand(1, 4), wanderTo: null, deadT: 0, specT: (def.slam?.every || 99) * 0.6, rainT: (def.rain?.every || 99) * 0.6, summoned: [], summonDone: [], facing: rand(0, 6.28), rad: 0.45 * def.scale };
   if (def.model.includes('ghost')) c.obj.traverse((o) => { if (o.isMesh) { o.material.transparent = true; o.material.opacity = 0.85; } });
   if (def.gear) attachGear(c);
@@ -676,8 +742,9 @@ function getGlowTex() {
 }
 function addEyes(c, def) {
   const h = 1.8 * def.scale; const grp = new THREE.Group();
-  for (const sx of [-1, 1]) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: getGlowTex(), color: def.eyes, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, transparent: true, fog: false })); sp.scale.setScalar(0.16 * def.scale); sp.position.set(sx * 0.1 * def.scale, 0, 0); grp.add(sp); }
-  grp.position.set(0, h * (def.model.includes('ghost') ? 0.62 : 0.7), 0.26 * def.scale); grp.renderOrder = 5; c.holder.add(grp); c.eyes = grp;
+  for (const sx of [-1, 1]) { const d = new THREE.Object3D(); d.position.set(sx * 0.1 * def.scale, 0, 0); grp.add(d); }
+  grp.position.set(0, h * (def.model.includes('ghost') ? 0.62 : 0.7), 0.26 * def.scale); c.holder.add(grp); c.eyes = grp;
+  if (!glow.eyeList) glow.eyeList = []; glow.eyeList.push({ holder: c.holder, grp, color: def.eyes, size: 0.16 * def.scale });
 }
 const PMAX = 360;
 const parts = { list: [], add: null, norm: null };
@@ -729,7 +796,11 @@ function updateBossUI() {
   const p = state.player; let boss = null;
   for (const e of state.enemies) if (e.def.boss && e.state === 'chase' && e.pos.distanceTo(p.pos) < 32) { boss = e; break; }
   const bb = $('bossbar');
+  // one name on screen in a boss fight: the boss bar replaces the target frame and the floating name label
+  if (updateBossUI.last && updateBossUI.last !== boss && updateBossUI.last.label) updateBossUI.last.label.style.visibility = '';
+  updateBossUI.last = boss; document.body.classList.toggle('bossfight', !!boss && p.target === boss);
   if (!boss) { bb.classList.add('hidden'); return; }
+  if (boss.label) boss.label.style.visibility = 'hidden';
   bb.classList.remove('hidden'); bb.querySelector('.bn').textContent = boss.def.name; bb.querySelector('.bt').textContent = boss.def.title || '';
   bb.querySelector('.bb div').style.width = (100 * Math.max(0, boss.hp) / boss.maxHp) + '%'; bb.classList.toggle('enraged', !!boss.enraged);
 }
@@ -844,7 +915,8 @@ function questAvailable(q) { return !qstate(q.id) && (!q.req || qstate(q.req)?.s
 function acceptQuest(q) { save.quests[q.id] = { status: 'active', prog: q.objectives.map(() => 0) }; sfx.quest(); toast('Quest accepted', q.name); log(`Quest accepted: <b>${esc(q.name)}</b>`); spawnQuestItems(); renderTracker(); writeSave(); }
 function checkQuestReady(q) { const s = qstate(q.id); if (s.status !== 'active') return; if (q.objectives.every((o, i) => s.prog[i] >= o.count)) { s.status = 'ready'; sfx.quest(); toast('Objectives complete', `Return to ${NPCS[q.giver].name}`); writeSave(); } }
 function questEvent(type, key) {
-  for (const q of QUESTS) { const s = qstate(q.id); if (!s || s.status !== 'active') continue; q.objectives.forEach((o, i) => { if (o.type === type && (o.enemy === key || o.item === key) && s.prog[i] < o.count) { s.prog[i]++; log(`${esc(o.label)}: ${s.prog[i]}/${o.count}`); } }); checkQuestReady(q); }
+  for (const q of QUESTS) { const s = qstate(q.id); if (!s || s.status !== 'active') continue; q.objectives.forEach((o, i) => { if (o.type === type && (o.enemy === key || o.item === key || o.npc === key) && s.prog[i] < o.count) { s.prog[i]++; log(`${esc(o.label)}: ${s.prog[i]}/${o.count}`); } }); checkQuestReady(q); }
+  dailyEvent(type, key);
   renderTracker();
 }
 function completeQuest(q) {
@@ -860,9 +932,9 @@ function completeQuest(q) {
 }
 function completeChoice(q, key) {
   const ch = q.choices[key]; if (!ch || qstate(q.id)) return;
-  save.quests[q.id] = { status: 'ready', prog: [1], choice: key }; save.standing = key;
+  save.quests[q.id] = { status: 'ready', prog: [1], choice: key }; save.standing = key; save.rep ||= { dawnward: 0, thornkin: 0 }; save.rep[key] += 250; save.rep[key === 'dawnward' ? 'thornkin' : 'dawnward'] -= 100; save.repChoice = true;
   const real = q.reward; q.reward = ch.reward; completeQuest(q); q.reward = real;
-  openPanel(NPCS[q.giver].name, `<div class="dlg"><p>${esc(ch.doneText)}</p><div class="rw">You chose the ${key === 'dawnward' ? 'Dawnward' : 'Thornkin'}. They will remember it.</div><div class="btnrow"><button class="pbtn go" id="chok">Continue</button></div></div>`);
+  openPanel(NPCS[q.giver].name, `<div class="dlg"><p>${esc(ch.doneText)}</p><div class="rw">You chose the ${key === 'dawnward' ? 'Dawnward' : 'Thornkin'}. They will remember it. (+250 ${FACTIONS[key]}, -100 ${FACTIONS[key === 'dawnward' ? 'thornkin' : 'dawnward']})</div><div class="btnrow"><button class="pbtn go" id="chok">Continue</button></div></div>`);
   $('chok').onclick = closePanel;
 }
 function renderTracker() {
@@ -874,24 +946,111 @@ function renderTracker() {
     else q.objectives.forEach((o, i) => { h += `<div class="qo ${s.prog[i] >= o.count ? 'done' : ''}">• ${esc(o.label)}: ${s.prog[i]}/${o.count}</div>`; });
   }
   if (!h) {
-    const next = QUESTS.find(questAvailable);
+    const next = QUESTS.find((q) => !q.side && questAvailable(q));
     if (next) h = `<div class="qt">Next</div><div class="qo">Talk to ${esc(NPCS[next.giver].name)} <span style="color:#ffd23f">!</span></div>`;
     else if (qstate('q5')?.status === 'done') h = `<div class="qt">The Vale is quiet. For now.</div><div class="qo">Run the Mill of Ashes again for loot, or spend your talents.</div>`;
     else if (save.finished) h = `<div class="qt">The beacon holds</div><div class="qo">Hunt the Hollow, find loot, grow stronger.</div>`;
   }
+  for (const j of activeDailies()) { h += `<div class="qt daily">${esc(j.def.name)} <small>(daily)</small></div>`; h += j.st.status === 'ready' ? `<div class="qo done">✔ Claim at the notice board</div>` : `<div class="qo">• ${esc(dailyLabel(j.def))}: ${j.st.prog}/${j.def.count}</div>`; }
   $('tracker').innerHTML = h;
 }
 const OIL_SPOTS = [[-4, -30], [7.5, -29.5], [5, -38], [-3, -38.5], [9.5, -35]];
+const ITEM_LOOK = { oil: ['dun/potion', 2.2, 0x7fffd0], lantern: ['grave/lantern-glass', 1.5, 0xffb060], satchel: ['dun/chest', 0.8, 0xe0c080], ashroot: ['nature/grass_large', 1.6, 0xff7a3a], gravemoss: ['nature/grass_large', 1.4, 0x8aff9a], candle: ['grave/candle', 2.2, 0xffd080] };
+function addQuestItem(item, x, z, owner, idx) {
+  const L = ITEM_LOOK[item] || ITEM_LOOK.oil;
+  const m = new THREE.Group(); const o = G[L[0]].scene.clone(true); o.scale.setScalar(L[1]); m.add(o);
+  const glowM = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 3, 12, 1, true), new THREE.MeshBasicMaterial({ color: L[2], transparent: true, opacity: 0.32, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+  glowM.position.y = 1.5; m.add(glowM); m.position.set(x, 0, z); scene.add(m);
+  state.questItems.push({ m, x, z, item, owner, idx });
+}
+// Rebuilds every pick-up for active quests and daily gather jobs. Each owner remembers which spots it has used.
 function spawnQuestItems() {
   for (const qi of state.questItems) scene.remove(qi.m); state.questItems = [];
-  const s = qstate('q2'); if (!s || s.status !== 'active') return;
-  const left = 4 - s.prog[0];
-  OIL_SPOTS.slice(0, left + 1).forEach(([x, z]) => {
-    const m = new THREE.Group(); const pot = G['dun/potion'].scene.clone(true); pot.scale.setScalar(2.2); m.add(pot);
-    const glow = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 3, 12, 1, true), new THREE.MeshBasicMaterial({ color: 0x7fffd0, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
-    glow.position.y = 1.5; m.add(glow); m.position.set(x, 0, z); scene.add(m);
-    state.questItems.push({ m, x, z, item: 'oil' });
+  const q2 = qstate('q2');
+  if (q2 && q2.status === 'active') { const left = 4 - q2.prog[0]; OIL_SPOTS.slice(0, left + 1).forEach(([x, z]) => addQuestItem('oil', x, z, null, -1)); }
+  const add = (st, item, count, prog, ownerKey) => { const spots = QUEST_SPOTS[item]; if (!spots) return; st.picked ||= []; let left = count - prog + 1; spots.forEach(([x, z], i) => { if (left > 0 && !st.picked.includes(i)) { addQuestItem(item, x, z, ownerKey, i); left--; } }); };
+  for (const q of QUESTS) { if (q.id === 'q2') continue; const st = qstate(q.id); if (!st || st.status !== 'active') continue; q.objectives.forEach((o, i) => { if (o.type === 'collect' && st.prog[i] < o.count) add(st, o.item, o.count, st.prog[i], 'q:' + q.id); }); }
+  for (const j of activeDailies()) if (j.def.item && j.st.status === 'active') add(j.st, j.def.item, j.def.count, j.st.prog, 'd:' + j.def.id);
+}
+function ownerState(key) { if (!key) return null; const [k, id] = key.split(':'); return k === 'q' ? qstate(id) : save.daily?.jobs.find((x) => x.id === id); }
+
+// ---------- daily jobs ----------
+function localDate() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+function dailyDef(id) { for (const k in DAILY_POOL) { const d = DAILY_POOL[k].find((x) => x.id === id); if (d) return { ...d, kind: k }; } return null; }
+function dailyLabel(d) { return d.enemy ? `${ENEMIES[d.enemy].name} slain` : d.item ? `${({ ashroot: 'Ashroot', gravemoss: 'Grave moss', candle: 'Candle stubs' })[d.item] || d.item} gathered` : `Delivered to ${NPCS[d.npc].name}`; }
+function ensureDaily() {
+  const today = localDate();
+  if (save.daily && save.daily.date === today) return false;
+  const rr = mulberry(hashStr('vael-daily-' + today));
+  const pick = (arr) => arr[Math.floor(rr() * arr.length)];
+  save.daily = { date: today, jobs: ['kill', 'gather', 'deliver'].map((k) => ({ id: pick(DAILY_POOL[k]).id, status: 'open', prog: 0 })) };
+  return true;
+}
+function activeDailies() { return (save?.daily?.jobs || []).filter((j) => j.status === 'active' || j.status === 'ready').map((st) => ({ st, def: dailyDef(st.id) })); }
+function dailyEvent(type, key) {
+  for (const { st, def } of activeDailies()) {
+    if (st.status !== 'active') continue;
+    const hit = (type === 'kill' && def.enemy === key) || (type === 'collect' && def.item === key) || (type === 'deliver' && def.npc === key);
+    if (!hit) continue; st.prog = Math.min(def.count, st.prog + 1); log(`${esc(def.name)}: ${st.prog}/${def.count}`);
+    if (st.prog >= def.count) { st.status = 'ready'; sfx.quest(); toast('Daily job done', `${def.name}: claim it at the notice board`); }
+    writeSave();
+  }
+}
+function repTier(v) { let t = REP_TIERS[0][1]; for (const [min, name] of REP_TIERS) if (v >= min) t = name; return t; }
+function repHTML() { save.rep ||= { dawnward: 0, thornkin: 0 }; return Object.keys(FACTIONS).map((f) => `<div class="rep ${f}"><b>${FACTIONS[f]}</b> <span>${repTier(save.rep[f])}</span> <small>(${save.rep[f]})</small></div>`).join(''); }
+function openBoard() {
+  if (ensureDaily()) { spawnQuestItems(); renderTracker(); }
+  let h = `<div class="dlg board"><p><i>Nails, old blood-red wax, and parchment gone soft with mist. Somebody has written "PAY ON RETURN" across the top in charcoal.</i></p>`;
+  for (const st of save.daily.jobs) {
+    const d = dailyDef(st.id); if (!d) continue;
+    const who = `<span class="fac ${d.faction}">${FACTIONS[d.faction]}</span>`;
+    let btn = '';
+    if (st.status === 'open') btn = `<button class="pbtn go" data-job="${d.id}" data-a="take">Take the job</button>`;
+    else if (st.status === 'active') btn = `<div class="qo">• ${esc(dailyLabel(d))}: ${st.prog}/${d.count}</div>`;
+    else if (st.status === 'ready') btn = `<button class="pbtn go" data-job="${d.id}" data-a="claim">Claim ${d.gold} gold, +${d.rep} ${FACTIONS[d.faction]}</button>`;
+    else btn = `<div class="qo done">✔ Done for today</div>`;
+    h += `<div class="job"><div class="jt">${esc(d.name)} ${who}</div><div class="jx">${esc(d.text)}</div><div class="jr">Pays ${d.gold} gold and +${d.rep} reputation</div>${btn}</div>`;
+  }
+  h += `<div class="h3">Standing</div>${repHTML()}<div class="rw">New jobs are posted at dawn (midnight on your clock).</div><div class="btnrow"><button class="pbtn" data-a="close">Leave</button></div></div>`;
+  openPanel('Notice Board', h);
+  $('pbody').querySelectorAll('[data-a]').forEach((b) => b.onclick = () => {
+    const st = save.daily.jobs.find((x) => x.id === b.dataset.job); const d = st && dailyDef(st.id);
+    if (b.dataset.a === 'take' && st) { st.status = 'active'; st.prog = 0; st.picked = []; sfx.quest(); log(`Daily job taken: <b>${esc(d.name)}</b>`); spawnQuestItems(); renderTracker(); writeSave(); openBoard(); }
+    else if (b.dataset.a === 'claim' && st) { st.status = 'done'; save.gold += d.gold; save.rep[d.faction] = (save.rep[d.faction] || 0) + d.rep; sfx.coin(); toast('Daily job complete', `${d.gold} gold · +${d.rep} ${FACTIONS[d.faction]}`); log(`Daily job complete: <b>${esc(d.name)}</b>`); renderTracker(); updateHUD(true); writeSave(); openBoard(); }
+    else closePanel();
   });
+}
+const BOARD_POS = [-7.6, -1.2];
+function spawnBoard() {
+  if (state.board) return;
+  const g = new THREE.Group(); const wood = new THREE.MeshLambertMaterial({ color: 0x3a2a1c }); const paper = new THREE.MeshLambertMaterial({ color: 0x8a7e66 });
+  for (const sx of [-0.9, 0.9]) { const post = new THREE.Mesh(new THREE.BoxGeometry(0.14, 2.3, 0.14), wood); post.position.set(sx, 1.15, 0); post.castShadow = true; g.add(post); }
+  const board = new THREE.Mesh(new THREE.BoxGeometry(2.1, 1.2, 0.08), wood); board.position.set(0, 1.55, 0); board.castShadow = true; g.add(board);
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.08, 0.5), wood); roof.position.set(0, 2.3, 0.05); roof.rotation.x = 0.25; g.add(roof);
+  [[-0.55, 1.65, 0.05], [0.05, 1.5, 0.12], [0.6, 1.62, -0.06]].forEach(([x, y, r]) => { const pp = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.65), paper); pp.position.set(x, y, 0.05); pp.rotation.z = r; g.add(pp); });
+  // merge into two meshes (wood, paper) so the board costs 2 draw calls
+  g.updateMatrixWorld(true); const byMat = new Map();
+  g.children.forEach((m) => { const geo = m.geometry.clone().applyMatrix4(m.matrix); for (const k of Object.keys(geo.attributes)) if (k !== 'position' && k !== 'normal') geo.deleteAttribute(k); if (geo.index) { const ng = geo.toNonIndexed(); byMat.set(m.material, [...(byMat.get(m.material) || []), ng]); } else byMat.set(m.material, [...(byMat.get(m.material) || []), geo]); });
+  g.clear(); for (const [mat, geos] of byMat) { const mm2 = new THREE.Mesh(mergeGeometries(geos), mat); mm2.castShadow = true; mm2.receiveShadow = true; g.add(mm2); }
+  g.position.set(BOARD_POS[0], 0, BOARD_POS[1]); g.rotation.y = 0.9; scene.add(g); addCollider(BOARD_POS[0], BOARD_POS[1], 0.6);
+  state.board = { board: true, g, pos: new THREE.Vector3(BOARD_POS[0], 0, BOARD_POS[1]), def: { name: 'Notice Board', verb: 'Read the notice board' } };
+}
+
+// ---------- world boss ----------
+function wbState() { save.wb ||= { nextAt: Date.now() + WORLD_BOSS.firstDelay * 1000, kills: 0 }; return save.wb; }
+function wbTick(e) {
+  // called while the world boss is dormant/dead; it rises when the timer is up and you are strong enough
+  const w = wbState(); const p = state.player;
+  if (Date.now() < w.nextAt || save.level < WORLD_BOSS.minLevel || state.area !== 'world' || e.home.distanceTo(p.pos) < 14) return;
+  const def = e.def, c = e.c;
+  e.hp = e.maxHp; e.state = 'idle'; e.pos.copy(e.home); c.holder.visible = true; if (c.eyes) { c.eyes.visible = true; c.eyes.scale.setScalar(1); } e.introDone = false; c.holder.position.copy(e.pos); play(c, 'idle');
+  e.summonDone = []; e.enraged = false; e.specT = (def.slam?.every || 99) * 0.6; e.rainT = (def.rain?.every || 99) * 0.6; e.risen = true;
+  playSfx('bell', 0.5, 0.55); shake(0.25, 0.8); toast('The ground heaves at Millbrook Barrow', 'The Harrowed Ploughman walks again. (World boss, north-east of the farm)'); log('<i>Far off, a bell tolls. Something huge climbs out of the barrow field.</i>');
+}
+function wbKilled(e) {
+  const w = wbState(); w.kills = (w.kills || 0) + 1; w.nextAt = Date.now() + WORLD_BOSS.respawn * 1000; e.risen = false;
+  if (w.kills === 1 || Math.random() < WORLD_BOSS.uniqueChance) { const u = WORLD_BOSS.unique; const it = makeItem(u.slot, u.rarity, u.ilvl, mulberry(hashStr(u.name)), u.name); it.unique = true; spawnLootObj(e.pos.clone().add(new THREE.Vector3(0.8, 0, 0.6)), { item: it }); }
+  setTimeout(() => toast('The Ploughman falls', 'The furrows go still. It will rise again in about 15 minutes.'), 1400); writeSave();
 }
 
 // ---------- loot ----------
@@ -977,6 +1136,7 @@ function killEnemy(e) {
   if (state.player.target === e) { state.player.target = null; state.player.engage = false; }
   sfx.kill();
   if (e.def.boss || e.def.elite) toast(`${e.def.name} defeated!`);
+  if (e.def.worldBoss) wbKilled(e);
   if (e.type === 'greywarden') { const ex = state.portals.find((o) => o.id === 'mill-exit'); if (ex) ex.g.visible = true; setTimeout(() => toast('The Grey Warden falls', 'The mask crumbles to ash. There is no one beneath it.'), 1500); log('<i>The Grey Warden\'s mask crumbles to ash. A way out glows in the corner.</i>'); }
   for (const s of e.summoned) if (s.state !== 'dead') { s.state = 'dead'; s.deadT = 0; s.hp = 0; play(s.c, 'die', true); }
   e.summoned = [];
@@ -1057,14 +1217,22 @@ function nearbyInteractable() {
   const p = state.player; if (!p) return null; let best = null, bd = 3.2;
   for (const id in state.npcs) { const n = state.npcs[id]; const d = n.pos.distanceTo(p.pos); if (d < bd) { bd = d; best = n; } }
   for (const pt of state.portals) { if (!pt.g.visible) continue; const d = pt.pos.distanceTo(p.pos); if (d < bd) { bd = d; best = pt; } }
+  if (state.board) { const d = state.board.pos.distanceTo(p.pos); if (d < bd) { bd = d; best = state.board; } }
   return best;
 }
-function interact() { const n = nearbyInteractable(); if (!n || state.paused) return; if (n.portal) openPortal(n); else openDialog(n.id); }
+function interact() { const n = nearbyInteractable(); if (!n || state.paused) return; if (n.portal) openPortal(n); else if (n.board) openBoard(); else openDialog(n.id); }
 function npcQuestFor(id) {
   const ready = QUESTS.find((q) => q.giver === id && qstate(q.id)?.status === 'ready'); if (ready) return { q: ready, kind: 'ready' };
+  if (pendingDeliveries(id).length) return { q: null, kind: 'deliver' };
   const av = QUESTS.find((q) => q.giver === id && questAvailable(q)); if (av) return { q: av, kind: 'avail' };
   const act = QUESTS.find((q) => q.giver === id && qstate(q.id)?.status === 'active'); if (act) return { q: act, kind: 'active' };
   return null;
+}
+function pendingDeliveries(id) {
+  const out = [];
+  for (const q of QUESTS) { const st = qstate(q.id); if (!st || st.status !== 'active') continue; q.objectives.forEach((o, i) => { if (o.type === 'deliver' && o.npc === id && st.prog[i] < o.count && q.objectives.slice(0, i).every((p, j) => p.type === 'deliver' || st.prog[j] >= p.count)) out.push({ label: o.label, reply: q.deliverText?.[id] || 'Thank you.', key: 'q' }); }); }
+  for (const { st, def } of activeDailies()) if (st.status === 'active' && def.npc === id) out.push({ label: def.name, reply: def.reply, key: 'd' });
+  return out;
 }
 function rewardText(rw) {
   const parts = [`${rw.xp} XP`, `${rw.gold} gold`]; if (rw.potions) parts.push(`${rw.potions} Healing Draughts`);
@@ -1084,7 +1252,9 @@ function openDialog(id) {
   else if (qq?.kind === 'avail' && qq.q.choice) { text = qq.q.text; extra = `<div class="rw">Choose carefully. This cannot be undone.</div>`; for (const k in qq.q.choices) btns += `<button class="pbtn go" data-do="choice" data-q="${qq.q.id}" data-c="${k}">${esc(qq.q.choices[k].label)}<br><small>${rewardText(qq.q.choices[k].reward)}</small></button>`; }
   else if (qq?.kind === 'avail') { text = qq.q.text; extra = `<div class="rw">Reward: ${rewardText(qq.q.reward)}</div>`; btns += `<button class="pbtn go" data-do="accept" data-q="${qq.q.id}">Accept: ${esc(qq.q.name)}</button>`; }
   else if (qq?.kind === 'active') text = qq.q.progressText;
+  else if (qq?.kind === 'deliver') text = 'You have something for me?';
   else text = IDLE_LINES[id][Math.floor(Math.random() * IDLE_LINES[id].length)];
+  pendingDeliveries(id).forEach((dv, i) => { btns = `<button class="pbtn go" data-do="deliver" data-i="${i}">Hand over: ${esc(dv.label)}</button>` + btns; });
   if (d.vendor) btns += `<button class="pbtn" data-do="shop">🪙 Browse wares</button>`;
   btns += `<button class="pbtn" data-do="close">Goodbye</button>`;
   openPanel(d.name, `<div class="dlg"><i style="color:#bbb">${esc(d.title)}</i><p>${esc(text)}</p>${extra}<div class="btnrow">${btns}</div></div>`);
@@ -1094,6 +1264,7 @@ function openDialog(id) {
     else if (act === 'choice') { closePanel(); completeChoice(q, b.dataset.c); }
     else if (act === 'complete') { closePanel(); completeQuest(q); }
     else if (act === 'shop') openVendor();
+    else if (act === 'deliver') { const dv = pendingDeliveries(id)[+b.dataset.i]; sfx.quest(); questEvent('deliver', id); openPanel(d.name, `<div class="dlg"><p>${esc(dv?.reply || 'Thank you.')}</p><div class="btnrow"><button class="pbtn" data-do2="ok">Goodbye</button></div></div>`); $('pbody').querySelector('[data-do2]').onclick = closePanel; }
     else closePanel();
   });
 }
@@ -1145,7 +1316,7 @@ function wireBag() { $('pbody').querySelectorAll('[data-bag]').forEach((b) => b.
 function openChar() {
   const s = state.player.stats;
   let eq = '<div class="eq">'; for (const k of SLOTS) eq += save.equip[k] ? cellHTML(save.equip[k], `data-eq="${k}"`) : `<div class="cell empty" title="${SLOT_NAMES[k]}">${SLOT_ICONS[k]}</div>`; eq += '</div>';
-  const html = `<div class="cols"><div><div class="h3">Equipped</div>${eq}<div class="stats"><div>Level ${save.level} Warden</div><div>❤️ Health: ${s.maxHp}</div><div>⚔️ Attack power: ${s.ap}</div><div>🛡️ Armour: ${s.armor} (takes ${Math.round(100 - 6000 / (60 + s.armor))}% less damage)</div><div>💥 Crit chance: ${s.critC}%</div><div>⏱️ Haste: ${s.haste}%</div><div>🪙 Gold: ${save.gold} · 🧪 Draughts: ${save.potions}</div>${save.standing ? `<div>⚖️ Sided with: ${save.standing === 'dawnward' ? 'the Dawnward' : 'the Thornkin'}</div>` : ''}<div style="color:#aaa">Kills: ${save.stats.kills} · Deaths: ${save.stats.deaths}</div></div></div><div><div class="h3">Bag (${save.bag.length}/20)</div>${bagGrid()}<div style="font-size:12px;color:#aaa;margin-top:8px">Tap an item to see it, compare it and equip it.</div></div></div>`;
+  const html = `<div class="cols"><div><div class="h3">Equipped</div>${eq}<div class="stats"><div>Level ${save.level} Warden</div><div>❤️ Health: ${s.maxHp}</div><div>⚔️ Attack power: ${s.ap}</div><div>🛡️ Armour: ${s.armor} (takes ${Math.round(100 - 6000 / (60 + s.armor))}% less damage)</div><div>💥 Crit chance: ${s.critC}%</div><div>⏱️ Haste: ${s.haste}%</div><div>🪙 Gold: ${save.gold} · 🧪 Draughts: ${save.potions}</div>${save.standing ? `<div>⚖️ Sided with: ${save.standing === 'dawnward' ? 'the Dawnward' : 'the Thornkin'}</div>` : ''}<div class="reps">${repHTML()}</div><div style="color:#aaa">Kills: ${save.stats.kills} · Deaths: ${save.stats.deaths}</div></div></div><div><div class="h3">Bag (${save.bag.length}/20)</div>${bagGrid()}<div style="font-size:12px;color:#aaa;margin-top:8px">Tap an item to see it, compare it and equip it.</div></div></div>`;
   openPanel('Character', html); state.vendorOpen = false; wireBag();
   $('pbody').querySelectorAll('[data-eq]').forEach((b) => b.onclick = () => showCard(save.equip[b.dataset.eq], 'equip'));
 }
@@ -1218,7 +1389,7 @@ function updateHUD(force = false) {
   }
   const tb = document.querySelector('#topbtns [data-act=talents]'); if (tb) tb.classList.toggle('glow', talentPoints() > 0);
   const n = nearbyInteractable();
-  if (n && !state.paused) { $('interact').classList.remove('hidden'); $('interact').textContent = n.portal ? `🌀 ${IS_TOUCH ? '' : '[E] '}${n.def.verb}` : `💬 ${IS_TOUCH ? '' : '[E] '}Talk to ${n.def.name.split(' ').slice(-2).join(' ')}`; } else $('interact').classList.add('hidden');
+  if (n && !state.paused) { $('interact').classList.remove('hidden'); $('interact').textContent = n.board ? `📜 ${IS_TOUCH ? '' : '[E] '}${n.def.verb}` : n.portal ? `🌀 ${IS_TOUCH ? '' : '[E] '}${n.def.verb}` : `💬 ${IS_TOUCH ? '' : '[E] '}Talk to ${n.def.name.split(' ').slice(-2).join(' ')}`; } else $('interact').classList.add('hidden');
 }
 const mm = $('minimap').getContext('2d');
 let mmT = 0;
@@ -1235,8 +1406,9 @@ function drawMinimap() {
   for (const pt of state.portals) if (pt.g.visible) dot(pt.pos.x, pt.pos.z, '#c9a4ff', 4);
   for (const e of state.enemies) if (e.state !== 'dead') dot(e.pos.x, e.pos.z, e.def.boss || e.def.elite ? '#ff3a3a' : '#ff8a6a', e.def.boss || e.def.elite ? 4 : 2.5);
   for (const qi of state.questItems) dot(qi.x, qi.z, '#7fffd0', 3);
+  if (state.board && !inMill) dot(BOARD_POS[0], BOARD_POS[1], activeDailies().some((j) => j.st.status === 'ready') || (save.daily?.jobs || []).some((j) => j.status === 'open') ? '#e8d8a8' : '#8a8070', 3);
   for (const id in state.npcs) { const n = state.npcs[id]; const q = npcQuestFor(id); dot(n.pos.x, n.pos.z, q && q.kind !== 'active' ? '#ffd23f' : '#9fe39a', 3.5); }
-  if (!inMill) for (const q of QUESTS) { const s = qstate(q.id); if (s?.status === 'active') { mm.strokeStyle = '#ffd23f'; mm.lineWidth = 2 / z; mm.beginPath(); mm.arc((q.hint[0] - M.x0) * scale, (q.hint[1] - M.z0) * scale, 10 / z, 0, 7); mm.stroke(); } }
+  if (!inMill) for (const q of QUESTS) { const s = qstate(q.id); if (s?.status === 'active') { mm.strokeStyle = q.side ? '#d8d8d8' : '#ffd23f'; mm.lineWidth = 2 / z; mm.beginPath(); mm.arc((q.hint[0] - M.x0) * scale, (q.hint[1] - M.z0) * scale, 10 / z, 0, 7); mm.stroke(); } }
   mm.restore();
   mm.fillStyle = '#fff'; mm.beginPath(); mm.arc(80, 80, 4, 0, 7); mm.fill(); mm.strokeStyle = '#000'; mm.lineWidth = 1; mm.stroke();
 }
@@ -1354,8 +1526,11 @@ function updatePlayer(dt) {
   }
   for (const l of [...state.loot]) if (l.m.position.distanceTo(p.pos) < 1.5) pickupLoot(l);
   for (const qi of [...state.questItems]) if (Math.hypot(qi.x - p.pos.x, qi.z - p.pos.z) < 1.5) {
-    scene.remove(qi.m); state.questItems.splice(state.questItems.indexOf(qi), 1); sfx.loot(); questEvent('collect', qi.item);
-    if (qstate('q2')?.status !== 'active') { for (const o of state.questItems) scene.remove(o.m); state.questItems = []; }
+    if (qi.item === 'lantern') { qi.m.remove(qi.m.children[1]); addFlame(qi.x, 1.05, qi.z, 0.55); } else scene.remove(qi.m); // relit lanterns stay where they are
+    state.questItems.splice(state.questItems.indexOf(qi), 1); sfx.loot();
+    const ost = ownerState(qi.owner); if (ost) { (ost.picked ||= []).push(qi.idx); }
+    if (qi.owner && qi.owner.startsWith('d:')) dailyEvent('collect', qi.item); else if (qi.owner) { const q = QUESTS.find((x) => 'q:' + x.id === qi.owner); const st = qstate(q.id); q.objectives.forEach((o, i) => { if (o.type === 'collect' && o.item === qi.item && st.prog[i] < o.count) { st.prog[i]++; log(`${esc(o.label)}: ${st.prog[i]}/${o.count}`); } }); checkQuestReady(q); renderTracker(); } else questEvent('collect', qi.item);
+    spawnQuestItems(); writeSave();
   }
   turnTo(c.holder, p.facing, 14, dt);
   c.holder.position.copy(p.pos);
@@ -1371,6 +1546,7 @@ function updateEnemy(e, dt) {
     if (e.deadT > 4) c.holder.visible = false;
     if (e.summon) { if (e.deadT > 4) removeEnemy(e); return; }
     if (e.sp.dungeon) return; // dungeon enemies stay beaten until you leave
+    if (def.worldBoss) { wbTick(e); return; }
     const respawn = def.boss || def.elite ? 75 : 28;
     if (e.deadT > respawn && e.home.distanceTo(p.pos) > 20) { e.hp = e.maxHp; e.state = 'idle'; e.pos.copy(e.home); c.holder.visible = true; if (c.eyes) c.eyes.visible = true; e.introDone = false; c.holder.position.copy(e.pos); play(c, 'idle'); e.summonDone = []; e.enraged = false; e.specT = (def.slam?.every || 99) * 0.6; e.rainT = (def.rain?.every || 99) * 0.6; }
     return;
@@ -1442,7 +1618,7 @@ function updateLabels() {
     const n = state.npcs[id]; const s = screenOf(n.pos.clone().setY(2.3 * (n.def.scale || 1)));
     if (!n.mark) { n.mark = document.createElement('div'); n.mark.className = 'mark'; $('labels').appendChild(n.mark); n.name = document.createElement('div'); n.name.className = 'npcn'; n.name.innerHTML = `${esc(n.def.name)}<br><i>&lt;${esc(n.def.title)}&gt;</i>`; $('labels').appendChild(n.name); }
     const q = npcQuestFor(id);
-    n.mark.textContent = q ? (q.kind === 'avail' ? '!' : '?') : ''; n.mark.classList.toggle('grey', q?.kind === 'active');
+    n.mark.textContent = q ? (q.kind === 'avail' ? '!' : '?') : ''; n.mark.classList.toggle('grey', q?.kind === 'active'); n.mark.classList.toggle('side', !!q?.q?.side && q.kind === 'avail');
     n.mark.style.left = s.x + 'px'; n.mark.style.top = (s.y - 26) + 'px';
     n.name.style.left = s.x + 'px'; n.name.style.top = s.y + 'px';
   }
@@ -1461,6 +1637,8 @@ function frame() {
   const n = (window.VAEL && window.VAEL.speed) || 1;
   if (state.started && !state.paused && !document.hidden) perfTick(Math.min(1, rawDt)); else if (perf.el && !settings.fps) { perf.el.remove(); perf.el = null; }
   try { if (state.started && state.player) for (let i = 0; i < n; i++) step(n > 1 ? 0.05 : dt); } catch (err) { console.error(err); }
+  if (state.player) { const pp = state.player.pos, R2 = 30 * 30; for (const e of state.enemies) { const dx = e.pos.x - pp.x, dz = e.pos.z - pp.z; e.c.obj.visible = dx * dx + dz * dz < R2; } } // skinned meshes skip three's culling, so cull far characters by distance
+  if (world.flames) updateGlow();
   renderer.render(scene, camera);
 }
 function step(dt) {
@@ -1473,7 +1651,7 @@ function step(dt) {
     for (const l of state.loot) { l.t += dt; l.m.children[0].rotation.y += dt * 2; l.m.children[0].position.y = 0.15 + Math.sin(l.t * 3) * 0.08; }
     for (const qi of state.questItems) qi.m.children[0].rotation.y += dt * 1.5;
     for (const id in state.npcs) { const n = state.npcs[id]; n.c.mixer.update(dt); if (n.pos.distanceTo(p.pos) < 6) turnTo(n.c.holder, Math.atan2(p.pos.x - n.pos.x, p.pos.z - n.pos.z), 4, dt); }
-    saveT -= dt; if (saveT <= 0) { saveT = 10; writeSave(); }
+    saveT -= dt; if (saveT <= 0) { saveT = 10; if (ensureDaily()) { spawnQuestItems(); renderTracker(); toast('Dawn in Greenhollow', 'New jobs are nailed to the notice board'); } writeSave(); }
   }
   for (const fx of [...state.effects]) { fx.t += dt; if (fx.follow) fx.m.position.set(p.pos.x, fx.m.position.y, p.pos.z); fx.update(Math.min(1, fx.t / fx.life)); if (fx.t >= fx.life) { scene.remove(fx.m); state.effects.splice(state.effects.indexOf(fx), 1); } }
   for (const f of [...state.floats]) { f.t += dt; if (f.t > f.life) { f.el.remove(); state.floats.splice(state.floats.indexOf(f), 1); } }
@@ -1496,8 +1674,10 @@ function step(dt) {
 // ---------- boot ----------
 function startGame(fresh) {
   if (fresh) { localStorage.removeItem(SAVE_KEY); save = freshSave(); } else save = loadSave() || freshSave();
+  save.rep ||= { dawnward: 0, thornkin: 0 }; if (save.standing && !save.repChoice) { save.rep[save.standing] += 250; save.rep[save.standing === 'dawnward' ? 'thornkin' : 'dawnward'] -= 100; save.repChoice = true; }
+  ensureDaily(); spawnBoard();
   spawnPlayer();
-  for (const sp of SPAWNS) spawnEnemy(sp);
+  for (const sp of SPAWNS) { const e = spawnEnemy(sp); if (sp.worldBoss) { e.state = 'dead'; e.deadT = 99; e.hp = 0; e.c.holder.visible = false; } }
   spawnQuestItems();
   $('title').classList.add('hidden'); $('hud').classList.remove('hidden');
   buildHotbar(); renderTracker(); updateHUD(true);
@@ -1528,5 +1708,5 @@ window.VAEL = { colliders,
   completeQuest: (id) => completeQuest(QUESTS.find((q) => q.id === id)), acceptQuest: (id) => acceptQuest(QUESTS.find((q) => q.id === id)), equipItem, nearbyInteractable, npcQuestFor,
   enterMill, exitMill, openPortal, learnTalent, openTalents, talentPoints, MILL_PATH: MILL_PATH.map(([x, z]) => millTile(x, z)), PORTAL_WORLD, get area() { return state.area; }, millTile: (x, z) => millTile(x, z),
   setZoom: (h) => { viewH = h; resize(); },
-  setSetting: (k, v) => { settings[k] = v; saveSettings(); applyQuality(); }, get settings() { return settings; }, get perf() { return perf; }, get renderer() { return renderer; }, get scene() { return scene; }, effQuality: () => effQuality(),
+  setSetting: (k, v) => { settings[k] = v; saveSettings(); applyQuality(); }, get settings() { return settings; }, get perf() { return perf; }, openBoard, ensureDaily, wbNow: () => { wbState().nextAt = 0; }, localDate, activeDailies, BOARD_POS, get renderer() { return renderer; }, get scene() { return scene; }, get camera() { return camera; }, THREE, effQuality: () => effQuality(),
 };

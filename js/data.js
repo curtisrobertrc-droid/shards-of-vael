@@ -61,9 +61,11 @@ export const ENEMIES = {
   ashhusk: { name: 'Ash-Choked Husk', model: 'chars/character-zombie', level: 6, hp: 140, dmg: 13, speed: 2.6, aggro: 8, xp: 70, gold: [8, 14], drop: 0.3, scale: 1.05, tint: 0x2a2622 },
   millbones: { name: 'Mill Crypt Guard', model: 'grave/character-skeleton', level: 6, hp: 170, dmg: 14, speed: 3.0, aggro: 8, xp: 80, gold: [9, 15], drop: 0.32, scale: 1.1, tint: 0x3a2a10 },
   brute: { name: 'Ashen Brute', model: 'dun/character-orc', level: 7, hp: 380, dmg: 19, speed: 2.8, aggro: 8.5, xp: 120, gold: [14, 22], drop: 0.5, scale: 1.3, slam: { every: 9, radius: 2.6, dmg: 24, windup: 1.6 } },
+  wendel: { name: 'Old Wendel', model: 'chars/character-zombie', level: 3, hp: 170, dmg: 9, speed: 2.1, aggro: 7, xp: 90, gold: [8, 14], drop: 1, minRarity: 1, scale: 1.2, elite: true },
+  ploughman: { name: 'The Harrowed Ploughman', model: 'chars/character-zombie', level: 9, hp: 8200, dmg: 26, speed: 2.5, aggro: 10, xp: 850, gold: [120, 180], drop: 1, minRarity: 3, scale: 2.8, boss: true, worldBoss: true, lootPrefix: 'Harrowed', slam: { every: 8, radius: 3.4, dmg: 40, windup: 2.1 }, rain: { every: 10, radius: 2.4, dmg: 30, windup: 2.2, below: 0.6 }, summon: [0.5], summonType: 'husk', summonText: 'The Ploughman drags the dead up out of the furrows!', enrage: 0.2 },
   grinder: { name: 'The Bone Grinder', model: 'grave/character-skeleton', level: 7, hp: 2400, dmg: 19, speed: 2.9, aggro: 9, xp: 420, gold: [60, 90], drop: 1, minRarity: 2, scale: 1.9, boss: true, lootPrefix: 'Grinder\'s', slam: { every: 7.5, radius: 3.2, dmg: 28, windup: 1.8 }, summon: [0.5], summonType: 'millbones', summonText: 'The Bone Grinder rattles, and the crypt guards rise!' },
   ashmatron: { name: 'The Ash Matron', model: 'grave/character-ghost', level: 7, hp: 3000, dmg: 20, speed: 3.0, aggro: 9, xp: 520, gold: [80, 110], drop: 1, minRarity: 3, scale: 2.1, boss: true, lootPrefix: 'Cinder', tint: 0x2a1a12, rain: { every: 7, radius: 2.5, dmg: 26, windup: 1.9 }, summon: [0.6, 0.3], summonType: 'ashhusk', summonText: 'The Ash Matron breathes, and the husks stir in the cinders!' },
-  greywarden: { name: 'The Grey Warden', model: 'chars/character-knight', level: 9, hp: 7200, dmg: 28, gear: true, lootPrefix: 'Ashen', speed: 3.4, aggro: 11, xp: 900, gold: [160, 220], drop: 1, minRarity: 3, scale: 1.9, boss: true, tint: 0x1c1c22, slam: { every: 8, radius: 3.6, dmg: 42, windup: 1.8 }, rain: { every: 9, radius: 2.4, dmg: 32, windup: 1.9, below: 0.5 }, summon: [0.66, 0.33], summonType: 'ashhusk', summonText: 'The Grey Warden calls the ash-choked dead!', enrage: 0.25 },
+  greywarden: { name: 'The Grey Warden', model: 'chars/character-knight', level: 9, hp: 8600, dmg: 31, gear: true, lootPrefix: 'Ashen', speed: 3.4, aggro: 11, xp: 900, gold: [160, 220], drop: 1, minRarity: 3, scale: 1.9, boss: true, tint: 0x1c1c22, slam: { every: 8, radius: 3.6, dmg: 42, windup: 1.8 }, rain: { every: 9, radius: 2.4, dmg: 32, windup: 1.9, below: 0.5 }, summon: [0.66, 0.33], summonType: 'ashhusk', summonText: 'The Grey Warden calls the ash-choked dead!', enrage: 0.25 },
   wraith: { name: 'The Shrine Wraith', model: 'grave/character-ghost', level: 6, hp: 1350, dmg: 17, speed: 3.0, aggro: 10, xp: 650, gold: [90, 120], drop: 1, minRarity: 3, scale: 2.0, boss: true, rain: { every: 7.5, radius: 2.5, dmg: 28, windup: 1.9 }, summon: [0.6, 0.3], tint: 0x5b2a9a },
 };
 
@@ -143,7 +145,70 @@ export const QUESTS = [
     reward: { xp: 1600, gold: 300, item: { slot: 'mainhand', rarity: 3, ilvl: 9, name: 'Ashen Oathblade' } },
     hint: [14.5, -7.5],
   },
+  // ---- side quests (white markers) ----
+  {
+    id: 's1', side: true, name: 'Wendel\'s Ring', giver: 'marla', req: 'q1',
+    text: 'Old Wendel worked these fields forty years. The mist took him with the others, but he still walks the far rows, out by the eastern fence. He wears his wife\'s ring on a cord round his neck. She is buried under the elm. I would like them to be together again. Will you end him, gently, and bring me the ring?',
+    progressText: 'Wendel walks the far eastern rows. He was always slow. He is slower now.',
+    doneText: 'That is it. That is her ring. I will bury it under the elm tonight, when the crows have gone. Thank you, Warden. Take this. It was his, and he would want it used.',
+    objectives: [{ type: 'kill', enemy: 'wendel', count: 1, label: 'Old Wendel put to rest' }],
+    reward: { xp: 260, gold: 45, potions: 1, item: { slot: 'feet', rarity: 1, ilvl: 4, name: 'Wendel\'s Field Boots' } },
+    hint: [36, 9],
+  },
+  {
+    id: 's2', side: true, name: 'Lights for the Dead', giver: 'pip', req: 'q2',
+    text: 'There is an old rule in Greenhollow: the dead get a lantern each, so they can find their way and do not come looking for ours. The graveyard lanterns have all gone out. I would go myself, but... the bones. Relight four of them for me? The oil is in them already. They only want a spark.',
+    progressText: 'Four dark lanterns, among the graves. A spark each. Then come home quickly.',
+    doneText: 'I saw them from the beacon, one after another, like a string of little moons. The bones were quieter tonight. Here: draughts and coin, and my thanks, which is worth less but means more.',
+    objectives: [{ type: 'collect', item: 'lantern', count: 4, label: 'Grave lanterns relit' }],
+    reward: { xp: 380, gold: 60, potions: 2 },
+    hint: [2, -33],
+  },
+  {
+    id: 's3', side: true, name: 'The Courier on the Gibbet', giver: 'edda', req: 'q3',
+    text: 'One of my couriers never came back from Thornwood. Grubb\'s men left him on the gibbet by the camp road as a warning. He carried a satchel of letters for Sir Caldus. Cut the satchel down, deal with any cutthroats still watching the road, and take the letters to Caldus. Then come back to me. I want to hear what they said.',
+    progressText: 'The gibbet stands on the road east of the bandit camp. Then the letters go to Sir Caldus.',
+    doneText: 'So the letters asked the Dawnward for more lamp-oil and more swords, and Caldus will send neither. Of course he won\'t. ...Thank you for bringing my courier\'s last errand home. Wear this. He would have liked someone to.',
+    objectives: [{ type: 'collect', item: 'satchel', count: 1, label: 'Courier\'s satchel recovered' }, { type: 'kill', enemy: 'bandit', count: 3, label: 'Road watchers dealt with' }, { type: 'deliver', npc: 'caldus', count: 1, label: 'Letters delivered to Sir Caldus' }],
+    deliverText: { caldus: 'Letters? From Thorne\'s courier? ...Give them here. Hm. More oil, more swords. She always wants more. I will read them. Eventually.' },
+    reward: { xp: 600, gold: 90, item: { slot: 'shoulders', rarity: 2, ilvl: 6, name: 'Courier\'s Mantle' } },
+    hint: [-20.3, 5.6],
+  },
 ];
+
+// Spots for quest pick-ups (world coordinates).
+export const QUEST_SPOTS = {
+  lantern: [[-6.5, -33.5], [7.4, -27.6], [6.5, -39], [-1.5, -39.5], [9.5, -37]],
+  satchel: [[-20.3, 5.6]],
+  ashroot: [[20, 12], [31, 13], [35, -3], [22, -5], [14, 10], [38, 6], [15, -12]],
+  gravemoss: [[-5, -27], [9, -27], [11, -36], [-7.5, -35.5], [0, -42], [-9, -32]],
+  candle: [[-11.5, 29], [-5, 38.5], [-14, 34], [1, 33], [-12, 40]],
+};
+
+// Daily jobs on the village notice board. Three a day (one kill, one gather, one deliver), picked by local date.
+export const DAILY_POOL = {
+  kill: [
+    { id: 'dk_husk', name: 'Cull the Husks', text: 'The Hollow keeps raising the farmhands. Put eight of them down before dark.', enemy: 'husk', count: 8, faction: 'dawnward', gold: 40, rep: 60 },
+    { id: 'dk_bones', name: 'Bones Back to Bed', text: 'The graveyard bones are restless again. Six of them, back in the ground.', enemy: 'skeleton', count: 6, faction: 'dawnward', gold: 45, rep: 60 },
+    { id: 'dk_bandit', name: 'Thin the Cutthroats', text: 'Thornwood bandits are cutting down the clan\'s marker-trees. Five of them, and the trees are safe a while.', enemy: 'bandit', count: 5, faction: 'thornkin', gold: 50, rep: 60 },
+    { id: 'dk_ghost', name: 'Lay the Shrine Ghosts', text: 'Shades still drift round the old shrine. Three of them laid to rest, by order of Old Mother Bramble.', enemy: 'ghost', count: 3, faction: 'thornkin', gold: 50, rep: 60 },
+  ],
+  gather: [
+    { id: 'dg_ashroot', name: 'Ashroot for the Beacon', text: 'Pip wants ashroot from the farm fields to thicken the beacon oil. Five roots. They glow faintly; look for that.', item: 'ashroot', count: 5, faction: 'dawnward', gold: 35, rep: 50 },
+    { id: 'dg_moss', name: 'Grave Moss', text: 'The Thornkin brew grave moss into a draught that keeps the mist out of the lungs. Five clumps from the graveyard.', item: 'gravemoss', count: 5, faction: 'thornkin', gold: 40, rep: 50 },
+    { id: 'dg_candle', name: 'Shrine Candles', text: 'Bramble\'s crows will not touch the old shrine candles. You can. Gather four stubs from around the shrine.', item: 'candle', count: 4, faction: 'thornkin', gold: 40, rep: 50 },
+  ],
+  deliver: [
+    { id: 'dd_caldus', name: 'A Sealed Report', text: 'A sealed report for Sir Caldus. Do not open it. Do not lose it. Do not make him wait.', npc: 'caldus', count: 1, faction: 'dawnward', gold: 30, rep: 40, reply: 'A report. Late, as always. You may go.' },
+    { id: 'dd_marla', name: 'Bread for Millbrook', text: 'A loaf and a little salt for Marla at Millbrook Farms. Nobody else will walk out there now.', npc: 'marla', count: 1, faction: 'thornkin', gold: 30, rep: 40, reply: 'Bread. Real bread. Thank you. Tell them in the village I am still here.' },
+    { id: 'dd_pip', name: 'Wicks for the Lamplighter', text: 'A bundle of new wicks for Pip Wickerly. He asked for them a month ago. He has been counting.', npc: 'pip', count: 1, faction: 'dawnward', gold: 25, rep: 40, reply: 'Wicks! Oh, proper ones. The beacon thanks you. I thank you. Mostly the beacon.' },
+  ],
+};
+export const FACTIONS = { dawnward: 'The Dawnward', thornkin: 'The Thornkin' };
+export const REP_TIERS = [[-1e9, 'Stranger'], [200, 'Known'], [600, 'Trusted'], [1200, 'Honoured'], [2400, 'Revered'], [4800, 'Exalted']];
+
+// The world boss: rises at Millbrook Barrow on a real-time timer.
+export const WORLD_BOSS = { type: 'ploughman', x: 28, z: -19, minLevel: 7, firstDelay: 60, respawn: 15 * 60, unique: { slot: 'shoulders', rarity: 3, ilvl: 10, name: 'Yoke of the Harrowed Ploughman' }, uniqueChance: 0.25 };
 
 // Warden talents: one point per level from level 2. Tier 2 needs 2 points in that tree, tier 3 needs 3.
 export const TALENT_TREES = [
@@ -184,8 +249,10 @@ const GRIM = {
   ashhusk: { mul: 0x6a6460, eyes: 0xff5a10, dust: 0x5a5450 },
   millbones: { mul: 0x9a8a70, eyes: 0xff7a20, dust: 0x8a7a60 },
   brute: { mul: 0x8a8078, eyes: 0xff3010, blood: 0x4a0806 },
-  grinder: { mul: 0xf0e4c8, eyes: 0xff7a20, dust: 0x9a8a70, title: 'Keeper of the Lower Stones' },
-  ashmatron: { eyes: 0xff5a10, dust: 0x5a4a40, title: 'She Who Sifts the Ash' },
+  wendel: { mul: 0x9c9a90, eyes: 0xb8d8ff, dust: 0x6a6458, title: 'Forty Years in These Fields' },
+  ploughman: { mul: 0x8a8478, eyes: 0xb8e0ff, rim: 0x1c2224, dust: 0x5a5040, title: 'The Field That Walks' },
+  grinder: { mul: 0xf0e4c8, rim: 0x3a2e22, eyes: 0xff7a20, dust: 0x9a8a70, title: 'Keeper of the Lower Stones' },
+  ashmatron: { rim: 0x24160e, eyes: 0xff5a10, dust: 0x5a4a40, title: 'She Who Sifts the Ash' },
   greywarden: { mul: 0x5a5a64, eyes: 0xff2a10, dust: 0x4a4a50, title: 'Masked Commander of the Hollow Court' },
   wraith: { eyes: 0xc070ff, dust: 0x8a6ab0, title: 'Hunger of the Broken Shrine' },
 };

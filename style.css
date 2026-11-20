@@ -183,3 +183,17 @@ body.q-high #game canvas{filter:contrast(1.07) saturate(.9)}
 #bosscard .bc2{font-family:"EB Garamond",serif;font-style:italic;font-size:19px;color:#c8bca8;text-shadow:0 2px 4px #000}
 @keyframes bossin{0%{opacity:0;transform:scale(1.15)}15%{opacity:1;transform:scale(1)}80%{opacity:1}100%{opacity:0}}
 body.touch #bossbar{top:56px;width:52vw}body.touch #bossbar .bn{font-size:15px}body.touch #bossbar .bt{display:none}
+
+body.bossfight #tframe { display: none; }
+
+/* phase 2b: side quests, notice board, reputation */
+.mark.side { color: #d8d4c8; text-shadow: 0 0 6px #000, 0 0 10px rgba(200,200,190,.4); }
+.dlg.board .job { border: 1px solid #4a3a28; background: linear-gradient(#1c1612, #120e0b); padding: 8px 10px; margin: 8px 0; border-radius: 4px; }
+.dlg.board .jt { font-family: Cinzel, serif; color: #e0c890; font-size: 15px; }
+.dlg.board .jx { color: #c8bca8; margin: 4px 0; font-style: italic; }
+.dlg.board .jr { color: #9a8c70; font-size: 12px; margin-bottom: 6px; }
+.fac { font-family: 'EB Garamond', serif; font-size: 12px; padding: 1px 6px; border-radius: 3px; margin-left: 6px; }
+.fac.dawnward, .rep.dawnward b { color: #f0d890; } .fac.dawnward { background: #3a2e14; }
+.fac.thornkin, .rep.thornkin b { color: #a8d890; } .fac.thornkin { background: #1c2e16; }
+.rep { margin: 2px 0; } .rep span { color: #ddd; } .rep small { color: #888; }
+.qt.daily { color: #d8c8a0; }
